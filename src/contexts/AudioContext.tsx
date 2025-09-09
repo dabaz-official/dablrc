@@ -43,7 +43,7 @@ export const useAudio = () => {
 };
 
 interface AudioProviderProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -78,7 +78,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         lyrics,
         setLyrics,
         updateLyricTimestamp,
-        audioRef,
+        audioRef: audioRef as React.RefObject<HTMLAudioElement>,
       }}
     >
       {children}
