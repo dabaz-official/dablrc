@@ -1,10 +1,21 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Download } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
+import { useAudio } from '@/contexts/AudioContext';
 
 const Header = () => {
+  const { audioFile } = useAudio();
+  const pathname = usePathname();
+  
+  // 在首页时不显示 Header
+  if (pathname === '/') {
+    return null;
+  }
   return (
     <header className="fixed inset-x-0 top-0 z-50 flex flex-col">
       <nav aria-label="Global" className="flex items-center justify-between p-4 lg:px-8 bg-neutral-100 dark:bg-neutral-900 border-b border-neutral-300 dark:border-neutral-700">
@@ -38,7 +49,12 @@ const Header = () => {
             Sync
           </Link>
         </div>
-        <div className="hidden lg:flex lg:flex-1 lg:justify-end">
+        <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-4">
+          {audioFile && (
+            <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300 truncate max-w-48">
+              {audioFile.name}
+            </span>
+          )}
           <Button className="text-sm/6 font-semibold">
             Save
             <Download />
