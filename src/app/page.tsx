@@ -1,129 +1,77 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAudio } from '@/contexts/AudioContext';
+import Link from 'next/link';
+import Image from 'next/image';
 
 export default function HomePage() {
-  const router = useRouter();
-  const { setAudioFile } = useAudio();
-  const [isDragging, setIsDragging] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleFileUpload = (file: File) => {
-    const allowedTypes = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-m4a'];
-    const allowedExtensions = ['.mp3', '.m4a', '.wav'];
-    
-    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-    
-    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
-      setError('请上传 MP3、M4A 或 WAV 格式的音频文件');
-      return;
-    }
-    
-    setError(null);
-    
-    // 创建文件 URL 并存储到音频上下文
-    const fileUrl = URL.createObjectURL(file);
-    setAudioFile({
-      name: file.name,
-      file: file,
-      url: fileUrl
-    });
-    
-    // 上传成功，重定向到编辑页面
-    router.push('/edit');
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      handleFileUpload(files[0]);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      handleFileUpload(files[0]);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex items-center justify-center p-6">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">
-            Upload Audio File
-          </h1>
-          <p className="text-neutral-600 dark:text-neutral-400">
-            Upload your audio file to start creating LRC lyrics
+      <div className="max-w-4xl w-full text-center">
+        <div className="mb-8">
+          <div className="flex justify-center items-center mb-6">
+            <Image
+              src="/logo/logo-dark.png"
+              alt="The logo of DabLRC"
+              width={80}
+              height={80}
+              className="h-16 w-auto block dark:hidden mr-4"
+            />
+            <Image
+              src="/logo/logo-light.png"
+              alt="The logo of DabLRC"
+              width={80}
+              height={80}
+              className="h-16 w-auto hidden dark:block mr-4"
+            />
+            <h1 className="text-5xl font-bold text-neutral-900 dark:text-neutral-100">
+              DabLRC
+            </h1>
+          </div>
+          <p className="text-xl text-neutral-600 dark:text-neutral-400 mb-8">
+            Create synchronized LRC lyrics for your audio files
           </p>
         </div>
         
-        <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors duration-200 ${
-            isDragging
-              ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
-              : 'border-neutral-300 dark:border-neutral-600 hover:border-neutral-400 dark:hover:border-neutral-500'
-          }`}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-        >
-          <div className="mb-4">
-            <svg
-              className="mx-auto h-12 w-12 text-neutral-400"
-              stroke="currentColor"
-              fill="none"
-              viewBox="0 0 48 48"
-            >
-              <path
-                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-          
-          <p className="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-            Drop your audio file here
-          </p>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
-            or click to browse
-          </p>
-          
-          <input
-            type="file"
-            accept=".mp3,.m4a,.wav,audio/mp3,audio/mpeg,audio/mp4,audio/m4a,audio/wav"
-            onChange={handleFileInput}
-            className="hidden"
-            id="file-upload"
-          />
-          
-          <label
-            htmlFor="file-upload"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer transition-colors duration-200"
+        <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+          <Link 
+            href="/edit"
+            className="group p-6 bg-white dark:bg-neutral-900 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 border border-neutral-200 dark:border-neutral-700 hover:border-blue-300 dark:hover:border-blue-600"
           >
-            Choose File
-          </label>
+            <div className="text-blue-600 dark:text-blue-400 mb-4">
+              <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+              Edit Lyrics
+            </h3>
+            <p className="text-neutral-600 dark:text-neutral-400">
+              Write and edit your lyrics text
+            </p>
+          </Link>
           
-          <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-4">
-            Supported formats: MP3, M4A, WAV
+          <Link 
+            href="/sync"
+            className="group p-6 bg-white dark:bg-neutral-900 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 border border-neutral-200 dark:border-neutral-700 hover:border-blue-300 dark:hover:border-blue-600"
+          >
+            <div className="text-blue-600 dark:text-blue-400 mb-4">
+              <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+              Sync Lyrics
+            </h3>
+            <p className="text-neutral-600 dark:text-neutral-400">
+              Synchronize lyrics with audio timing
+            </p>
+          </Link>
+        </div>
+        
+        <div className="mt-12">
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            Use the Upload button in the header to add your audio file and get started
           </p>
         </div>
       </div>
