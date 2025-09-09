@@ -2,11 +2,14 @@ import type { Metadata } from 'next';
 import { GeistMono } from 'geist/font/mono';
 
 import './globals.css';
-import Header from '@/components/layout/Header';
 import { ThemeProvider } from '@/components/providers/theme-provider';
+import LayoutContent from '@/components/layout/LayoutContent';
 
 export const metadata: Metadata = {
-  title: "DabLRC",
+  title: {
+    default: "DabLRC",
+    template: "%s - DabLRC",
+  },
   description: "Create and edit your LRC files.",
 };
 
@@ -25,8 +28,7 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
         >
-          <Header />
-          {children}
+          <LayoutContent>{children}</LayoutContent>
         </ThemeProvider>
       </body>
     </html>
