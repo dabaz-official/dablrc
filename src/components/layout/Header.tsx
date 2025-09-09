@@ -7,10 +7,21 @@ import { usePathname } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { useAudio } from '@/contexts/AudioContext';
+import { exportLrcFile, generateLrcFilename } from '@/lib/lrcParser';
 
 const Header = () => {
-  const { audioFile } = useAudio();
+  const { audioFile, lyrics } = useAudio();
   const pathname = usePathname();
+  
+  const handleSave = () => {
+    if (lyrics.lines.length === 0) {
+      alert('没有歌词可以导出，请先在 Edit 页面添加歌词。');
+      return;
+    }
+    
+    const filename = generateLrcFilename(audioFile?.name);
+    exportLrcFile(lyrics.lines, filename);
+  };
   
   // 在首页时不显示 Header
   if (pathname === '/') {
@@ -55,7 +66,10 @@ const Header = () => {
               {audioFile.name}
             </span>
           )}
-          <Button className="text-sm/6 font-semibold">
+          <Button 
+            className="text-sm/6 font-semibold"
+            onClick={handleSave}
+          >
             Save
             <Download />
           </Button>

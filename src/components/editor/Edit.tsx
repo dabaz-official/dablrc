@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useAudio } from '@/contexts/AudioContext';
+import { parseLrcText } from '@/lib/lrcParser';
 
 const Edit = () => {
   const [lyrics, setLyrics] = useState('');
@@ -12,9 +13,9 @@ const Edit = () => {
     const newLyrics = event.target.value;
     setLyrics(newLyrics);
     
-    // 将歌词按行分割并保存到全局状态
-    const lines = newLyrics.split('\n').map(text => ({ text: text.trim() })).filter(line => line.text !== '');
-    setGlobalLyrics({ lines });
+    // 解析 LRC 格式的歌词，提取时间戳
+    const parsedLines = parseLrcText(newLyrics);
+    setGlobalLyrics({ lines: parsedLines });
   };
 
   // 自动调整 textarea 高度
