@@ -2,25 +2,32 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Download } from 'lucide-react';
+import { Download, FileUp } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { useAudio } from '@/contexts/AudioContext';
 import { exportLrcFile, generateLrcFilename } from '@/lib/lrcParser';
+import UploadModal from '@/components/ui/UploadModal';
 
 const Header = () => {
   const { audioFile, lyrics } = useAudio();
   const pathname = usePathname();
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   
   const handleSave = () => {
     if (lyrics.lines.length === 0) {
-      alert('没有歌词可以导出，请先在 Edit 页面添加歌词。');
+      alert('No lyrics to export. Please add lyrics in the Edit page first.');
       return;
     }
     
     const filename = generateLrcFilename(audioFile?.name);
     exportLrcFile(lyrics.lines, filename);
+  };
+
+  const handleUpload = () => {
+    setIsUploadModalOpen(true);
   };
   
   // 在首页时不显示 Header
@@ -67,7 +74,15 @@ const Header = () => {
             </span>
           )}
           <Button 
-            className="text-sm/6 font-semibold"
+            variant="outline"
+            className="text-sm/6 font-semibold cursor-pointer"
+            onClick={handleUpload}
+          >
+            Upload
+            <FileUp />
+          </Button>
+          <Button 
+            className="text-sm/6 font-semibold cursor-pointer"
             onClick={handleSave}
           >
             Save
@@ -75,6 +90,11 @@ const Header = () => {
           </Button>
         </div>
       </nav>
+      
+      <UploadModal 
+        isOpen={isUploadModalOpen} 
+        onClose={() => setIsUploadModalOpen(false)} 
+      />
     </header>
   )
 };
