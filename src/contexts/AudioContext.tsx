@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useRef } from 'react';
+import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 
 interface AudioFile {
   name: string;
@@ -54,14 +54,44 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [lyrics, setLyrics] = useState<LyricsData>({ lines: [] });
   const audioRef = useRef<HTMLAudioElement>(null);
 
+  // 从localStorage加载歌词数据
+  useEffect(() => {
+    const savedLyrics = localStorage.getItem('dablrc-lyrics');
+    if (savedLyrics) {
+      try {
+        const parsedLyrics = JSON.parse(savedLyrics);
+        setLyrics(parsedLyrics);
+      } catch (error) {
+        console.error('Failed to parse saved lyrics:', error);
+      }
+    }
+  }, []);
+
+  // 保存歌词到localStorage
+  const saveLyricsToStorage = (lyricsData: LyricsData) => {
+    try {
+      localStorage.setItem('dablrc-lyrics', JSON.stringify(lyricsData));
+    } catch (error) {
+      console.error('Failed to save lyrics to localStorage:', error);
+    }
+  };
+
+  // 重写setLyrics函数，添加自动保存功能
+  const setLyricsWithSave = (lyricsData: LyricsData) => {
+    setLyrics(lyricsData);
+    saveLyricsToStorage(lyricsData);
+  };
+
   const updateLyricTimestamp = (lineIndex: number, timestamp: number | undefined) => {
-    setLyrics(prev => ({
-      lines: prev.lines.map((line, index) => 
+    const updatedLyrics = {
+      lines: lyrics.lines.map((line, index) => 
         index === lineIndex 
           ? { ...line, timestamp: timestamp !== undefined ? Math.round(timestamp * 100) / 100 : undefined }
           : line
       )
-    }));
+    };
+    setLyrics(updatedLyrics);
+    saveLyricsToStorage(updatedLyrics);
   };
 
   return (
@@ -76,7 +106,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         duration,
         setDuration,
         lyrics,
-        setLyrics,
+        setLyrics: setLyricsWithSave,
         updateLyricTimestamp,
         audioRef: audioRef as React.RefObject<HTMLAudioElement>,
       }}

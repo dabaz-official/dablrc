@@ -62,7 +62,8 @@ const Sync: React.FC = () => {
   const handleLyricClick = (lineIndex: number, timestamp: number | undefined) => {
     if (timestamp !== undefined && audioRef.current) {
       audioRef.current.currentTime = timestamp;
-      setCurrentLineIndex(lineIndex);
+      // 设置为点击行的下一行索引，这样下次点击"下一句"时会跳转到正确的下一行
+      setCurrentLineIndex(lineIndex + 1);
     }
   };
 
@@ -169,30 +170,32 @@ const Sync: React.FC = () => {
         </p>
       </div>
 
-      {/* 播放控制按钮 */}
-      <div className="mb-6 flex justify-center gap-4">
-        <button
-          onClick={handlePrevLine}
-          disabled={currentLineIndex <= 0}
-          className="flex items-center justify-center w-12 h-12 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full transition-colors"
-        >
-          <ChevronUp size={24} />
-        </button>
-        
-        <button
-          onClick={handlePlayPause}
-          className="flex items-center justify-center w-12 h-12 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors"
-        >
-          {isPlaying ? <Pause size={24} /> : <Play size={24} />}
-        </button>
-        
-        <button
-          onClick={handleNextLine}
-          disabled={currentLineIndex >= lyrics.lines.length}
-          className="flex items-center justify-center w-12 h-12 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full transition-colors"
-        >
-          <ChevronDown size={24} />
-        </button>
+      {/* 播放控制按钮 - 固定在页面底部 */}
+      <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 bg-white dark:bg-neutral-900 rounded-full shadow-lg border border-neutral-200 dark:border-neutral-700 p-2">
+        <div className="flex justify-center gap-4">
+          <button
+            onClick={handlePrevLine}
+            disabled={currentLineIndex <= 0}
+            className="flex items-center justify-center w-12 h-12 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full transition-colors"
+          >
+            <ChevronUp size={24} />
+          </button>
+          
+          <button
+            onClick={handlePlayPause}
+            className="flex items-center justify-center w-12 h-12 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors"
+          >
+            {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+          </button>
+          
+          <button
+            onClick={handleNextLine}
+            disabled={currentLineIndex >= lyrics.lines.length}
+            className="flex items-center justify-center w-12 h-12 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full transition-colors"
+          >
+            <ChevronDown size={24} />
+          </button>
+        </div>
       </div>
 
       {/* 当前播放时间显示 */}
@@ -202,8 +205,8 @@ const Sync: React.FC = () => {
         </p>
       </div>
 
-      {/* 歌词列表 */}
-      <div className="space-y-2">
+      {/* 歌词列表 - 添加底部间距以避免被固定按钮遮挡 */}
+      <div className="space-y-2 pb-24">
           {/* Start 按钮 */}
           <div className="flex items-center py-2 px-1 border-b border-neutral-100 dark:border-neutral-800">
             <div className="w-64 flex items-center gap-1 pr-4">
@@ -234,27 +237,23 @@ const Sync: React.FC = () => {
               line.timestamp !== undefined ? 'cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/50' : ''
             }`}
             onClick={() => handleLyricClick(index, line.timestamp)}
-            onMouseLeave={() => {
-              // 鼠标离开时清除蓝色高亮
-              if (index === currentLineIndex) {
-                setCurrentLineIndex(-1);
-              }
-            }}
           >
             {/* 左侧：时间戳和控制按钮 */}
               <div className="w-64 flex items-center gap-1 pr-4">
-                {/* X 按钮 - 清除时间戳 */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-300"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    clearTimestamp(index);
-                  }}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+                {/* X 按钮 - 清除时间戳，只有当有时间戳时才显示 */}
+                {line.timestamp !== undefined && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-300"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      clearTimestamp(index);
+                    }}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
                 
                 {line.timestamp !== undefined && (
                   <>
@@ -337,7 +336,7 @@ const Sync: React.FC = () => {
               </div>
             </div>
             <div className="flex-1 text-left text-neutral-500 dark:text-neutral-400 italic">
-              设置结束时间戳
+              Set end timestamp
             </div>
           </div>
         </div>
