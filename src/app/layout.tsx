@@ -4,6 +4,7 @@ import { GeistMono } from 'geist/font/mono';
 import './globals.css';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import LayoutContent from '@/components/layout/LayoutContent';
+import Navbar from '@/components/layout/Navbar';
 
 export const metadata: Metadata = {
   title: {
@@ -28,6 +29,7 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
         >
+          <Navbar />
           <LayoutContent>{children}</LayoutContent>
         </ThemeProvider>
       </body>
