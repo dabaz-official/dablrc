@@ -15,9 +15,10 @@ const LayoutContent: React.FC<LayoutContentProps> = ({ children }) => {
   
   return (
     <AudioProvider>
-      <Header />
-      <div className={`pb-20 ${isHomePage ? '' : 'pt-16'}`}>
-        {children}
+      <div className="min-h-full">
+        <div className={`pb-20 ${isHomePage ? '' : 'pt-16'}`}>
+          {children}
+        </div>
       </div>
       <AudioPlayer />
     </AudioProvider>
