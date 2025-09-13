@@ -39,7 +39,7 @@ const Edit = () => {
         value={lyrics}
         onChange={handleLyricsChange}
         placeholder="Enter your lyrics here..."
-        className="w-full sm:w-1/2 xl:w-1/4 min-h-[200px] p-4 resize-none focus:outline-none bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-mono text-sm leading-relaxed border-none overflow-hidden"
+        className="w-full sm:w-1/2 xl:w-1/3 min-h-[200px] p-4 resize-none focus:outline-none bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 font-mono text-md leading-relaxed border-none overflow-hidden"
       />
     </div>
   );
