@@ -5,13 +5,21 @@ import { useAudio } from '@/contexts/AudioContext';
 import { parseLrcText } from '@/lib/lrcParser';
 
 const Edit = () => {
-  const [lyrics, setLyrics] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { setLyrics: setGlobalLyrics } = useAudio();
+  const { lyrics: globalLyrics, setLyrics: setGlobalLyrics } = useAudio();
+  
+  // 将全局歌词转换为文本格式显示
+  const lyricsText = globalLyrics.lines.map(line => {
+    if (line.timestamp !== undefined) {
+      const minutes = Math.floor(line.timestamp / 60);
+      const seconds = (line.timestamp % 60).toFixed(2);
+      return `[${minutes.toString().padStart(2, '0')}:${seconds.padStart(5, '0')}]${line.text}`;
+    }
+    return line.text;
+  }).join('\n');
 
   const handleLyricsChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newLyrics = event.target.value;
-    setLyrics(newLyrics);
     
     // 解析 LRC 格式的歌词，提取时间戳
     const parsedLines = parseLrcText(newLyrics);
@@ -30,13 +38,13 @@ const Edit = () => {
       const newHeight = Math.max(textarea.scrollHeight, 200); // 200px 作为最小高度
       textarea.style.height = `${newHeight}px`;
     }
-  }, [lyrics]);
+  }, [lyricsText]);
 
   return (
     <div className="flex justify-center">
       <textarea
         ref={textareaRef}
-        value={lyrics}
+        value={lyricsText}
         onChange={handleLyricsChange}
         placeholder="Enter your lyrics here..."
         className="w-full sm:w-1/2 xl:w-1/3 min-h-[200px] p-4 resize-none focus:outline-none bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 font-mono text-md leading-relaxed border-none overflow-hidden"

@@ -18,13 +18,13 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const [error, setError] = useState<string | null>(null);
 
   const handleFileUpload = (file: File) => {
-    const allowedTypes = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-m4a'];
-    const allowedExtensions = ['.mp3', '.m4a', '.wav'];
+    const allowedTypes = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-m4a', 'audio/flac', 'audio/x-flac'];
+    const allowedExtensions = ['.mp3', '.m4a', '.wav', '.flac'];
     
     const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
     
     if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
-      setError('Please upload MP3, M4A or WAV format audio files');
+      setError('Please upload MP3, M4A, WAV or FLAC format audio files');
       return;
     }
     
@@ -130,7 +130,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
             
             <input
               type="file"
-              accept=".mp3,.m4a,.wav,audio/mp3,audio/mpeg,audio/mp4,audio/m4a,audio/wav"
+              accept=".mp3,.m4a,.wav,.flac,audio/mp3,audio/mpeg,audio/mp4,audio/m4a,audio/wav,audio/flac,audio/x-flac"
               onChange={handleFileInput}
               className="hidden"
               id="modal-file-upload"
@@ -144,7 +144,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
             </label>
             
             <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-4">
-              Supported formats: MP3, M4A, WAV
+              Supported formats: MP3, M4A, WAV, FLAC
             </p>
           </div>
         </div>
