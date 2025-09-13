@@ -66,20 +66,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
-    // 从sessionStorage恢复音频文件
-    const savedAudioFile = sessionStorage.getItem('dablrc-audio-file');
-    if (savedAudioFile) {
-      try {
-        const audioData = JSON.parse(savedAudioFile);
-        // 重新创建File对象和URL
-        const file = new File([audioData.data], audioData.name, { type: audioData.type });
-        const url = URL.createObjectURL(file);
-        setAudioFile({ name: audioData.name, file, url });
-      } catch (error) {
-        console.error('Failed to restore audio file from sessionStorage:', error);
-        sessionStorage.removeItem('dablrc-audio-file');
-      }
-    }
+    // 注意：音频文件不再从sessionStorage恢复，因为我们只存储基本信息
+    // 用户需要重新上传音频文件
   }, []);
 
   // 保存歌词到sessionStorage
@@ -92,13 +80,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // 保存音频文件到sessionStorage
-  const saveAudioFileToSession = async (audioFileData: AudioFile) => {
+  const saveAudioFileToSession = (audioFileData: AudioFile) => {
     try {
-      const arrayBuffer = await audioFileData.file.arrayBuffer();
+      // 只保存文件的基本信息，不保存二进制数据以避免配额限制
       const audioData = {
         name: audioFileData.name,
         type: audioFileData.file.type,
-        data: Array.from(new Uint8Array(arrayBuffer))
+        size: audioFileData.file.size,
+        url: audioFileData.url
       };
       sessionStorage.setItem('dablrc-audio-file', JSON.stringify(audioData));
     } catch (error) {
