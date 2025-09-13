@@ -46,7 +46,7 @@ const LayoutContent: React.FC<LayoutContentProps> = ({ children }) => {
   return (
     <AudioProvider>
       <div className="min-h-full">
-        <nav className="bg-white dark:bg-black border-b border-neutral-100 dark:border-neutral-900">
+        <nav className="bg-white dark:bg-black border-b border-neutral-100 dark:border-neutral-900 fixed top-0 left-0 right-0 z-10">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex h-16 items-center justify-between">
               <div className="flex">
@@ -109,7 +109,7 @@ const LayoutContent: React.FC<LayoutContentProps> = ({ children }) => {
             </div>
           </div>
         </nav>
-        <div className={`pb-12`}>
+        <div className={`py-12`}>
           {children}
         </div>
       </div>
