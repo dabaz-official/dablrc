@@ -1,10 +1,14 @@
 import type { Metadata } from 'next';
-import { GeistMono } from 'geist/font/mono';
+import { Inter } from 'next/font/google';
 
 import './globals.css';
 import { ThemeProvider } from '@/components/providers/theme-provider';
+import { AudioProvider } from '@/contexts/AudioContext';
 import LayoutContent from '@/components/layout/LayoutContent';
-import Navbar from '@/components/layout/Navbar';
+
+const inter = Inter({
+  subsets: ['latin'],
+})
 
 export const metadata: Metadata = {
   title: {
@@ -22,15 +26,16 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${GeistMono.className} antialiased`}
+        className={`${inter.className} bg-neutral-100 dark:bg-neutral-900 antialiased`}
       >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
         >
-          <Navbar />
-          <LayoutContent>{children}</LayoutContent>
+          <AudioProvider>
+            <LayoutContent>{children}</LayoutContent>
+          </AudioProvider>
         </ThemeProvider>
       </body>
     </html>
