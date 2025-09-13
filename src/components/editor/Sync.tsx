@@ -115,16 +115,7 @@ const Sync: React.FC = () => {
 
   if (!audioFile) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <div className="mb-4">
-          <h2 className="text-xl font-semibold mb-2 text-neutral-800 dark:text-neutral-200">
-            Timeline Sync
-          </h2>
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
-            Synchronize lyrics with audio timeline
-          </p>
-        </div>
-        
+      <div className="p-6 w-full sm:w-1/2 xl:w-1/3 mx-auto">
         <div className="space-y-4">
           <div className="p-8 border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg text-center">
             <p className="text-neutral-500 dark:text-neutral-400">
