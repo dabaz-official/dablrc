@@ -74,7 +74,7 @@ const LayoutContent: React.FC<LayoutContentProps> = ({ children }) => {
                       aria-current={item.current ? 'page' : undefined}
                       className={clsx(
                         item.current
-                          ? 'text-neutral-900'
+                          ? 'text-neutral-900 dark:text-neutral-100'
                           : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300',
                         'inline-flex items-center px-1 pt-1 text-sm font-medium',
                       )}

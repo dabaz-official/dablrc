@@ -130,15 +130,6 @@ const Sync: React.FC = () => {
   if (lyrics.lines.length === 0) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <div className="mb-4">
-          <h2 className="text-xl font-semibold mb-2 text-neutral-800 dark:text-neutral-200">
-            Timeline Sync
-          </h2>
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
-            Synchronize lyrics with audio timeline
-          </p>
-        </div>
-        
         <div className="space-y-4">
           <div className="p-8 border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg text-center">
             <p className="text-neutral-500 dark:text-neutral-400">
@@ -152,29 +143,20 @@ const Sync: React.FC = () => {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-2 text-neutral-800 dark:text-neutral-200">
-          Timeline Sync
-        </h2>
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">
-          Click play and use the next button to sync lyrics with audio
-        </p>
-      </div>
-
       {/* 播放控制按钮 - 固定在页面底部 */}
       <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 bg-white dark:bg-neutral-900 rounded-full shadow-lg border border-neutral-200 dark:border-neutral-700 p-2">
         <div className="flex justify-center gap-4">
           <button
             onClick={handlePrevLine}
             disabled={currentLineIndex <= 0}
-            className="flex items-center justify-center w-12 h-12 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full transition-colors"
+            className="flex items-center justify-center w-12 h-12 bg-blue-500 hover:bg-blue-600 dark:hover:bg-blue-400 disabled:bg-neutral-400 disabled:cursor-not-allowed text-white rounded-full transition-colors"
           >
             <ChevronUp size={24} />
           </button>
           
           <button
             onClick={handlePlayPause}
-            className="flex items-center justify-center w-12 h-12 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors"
+            className="flex items-center justify-center w-12 h-12 text-white rounded-full transition-colors"
           >
             {isPlaying ? <Pause size={24} /> : <Play size={24} />}
           </button>
@@ -182,18 +164,11 @@ const Sync: React.FC = () => {
           <button
             onClick={handleNextLine}
             disabled={currentLineIndex >= lyrics.lines.length}
-            className="flex items-center justify-center w-12 h-12 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full transition-colors"
+            className="flex items-center justify-center w-12 h-12 bg-blue-500 hover:bg-blue-600 dark:hover:bg-blue-400 disabled:bg-neutral-400 disabled:cursor-not-allowed text-white rounded-full transition-colors"
           >
             <ChevronDown size={24} />
           </button>
         </div>
-      </div>
-
-      {/* 当前播放时间显示 */}
-      <div className="mb-6 text-center">
-        <p className="text-lg font-mono text-neutral-700 dark:text-neutral-300">
-          Current Time: {formatTime(currentTime)}
-        </p>
       </div>
 
       {/* 歌词列表 - 添加底部间距以避免被固定按钮遮挡 */}
