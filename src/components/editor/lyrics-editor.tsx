@@ -27,7 +27,7 @@ export function LyricsEditor() {
   const [history, dispatch] = useReducer(historyReducer, EMPTY_HISTORY);
   const { lyrics, active, cursor, selected } = history.present;
   const playback = usePlayback();
-  const { currentTime, seek, togglePlay, openFile } = playback;
+  const { currentTime, seek, togglePlay, openFile, rate, setRate } = playback;
 
   const [mode, setMode] = useState<SyncMode>("word");
   const [panelOpen, setPanelOpen] = useState(false);
@@ -40,7 +40,7 @@ export function LyricsEditor() {
   const restore = useCallback((saved: Lyrics) => dispatch({ type: "load", lyrics: saved }), []);
 
   useDraft(lyrics, restore);
-  useSyncKeys({ dispatch, mode, hasAudio: playback.hasAudio, currentTime, seek, togglePlay });
+  useSyncKeys({ dispatch, mode, hasAudio: playback.hasAudio, rate, onRateChange: setRate, currentTime, seek, togglePlay });
 
   // The paste panel is open whenever there is nothing to sync yet.
   const showPanel = panelOpen || lyrics.length === 0;
@@ -175,7 +175,9 @@ export function LyricsEditor() {
         time={playback.time}
         duration={playback.duration}
         mode={mode}
+        rate={rate}
         onModeChange={setMode}
+        onRateChange={setRate}
         onTogglePlay={togglePlay}
         onSkip={skip}
         onSeek={seek}

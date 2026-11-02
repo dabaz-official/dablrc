@@ -14,6 +14,8 @@ Create and edit DMLL lyric files for DabMusic. Paste the lyrics, load the track,
    - `Shift+Space` ends the current word early, for a pause after it.
    - `Enter` ends the line and moves on to the next one.
    - `Backspace` or `Ctrl/Cmd+Z` undoes the last change.
+
+   For rap and other fast tracks, slow the audio to `0.5×` or `0.75×` with the speed buttons or `[` `]`. The playhead is always media time, so a tap records the same timestamp it would at full speed, only twice as precisely.
 4. **Fix.** Click a line or a word to select it. `S` and `E` set the selected word's start or end to the playhead. `,` `.` `;` `'` nudge the start or end by 10 ms (hold Shift for 100 ms). Arrows seek 2 s (Shift: 10 s).
 5. **Shape.** `L` / `R` moves a line to the other side. `Ad-lib` turns a line into an ad-lib under the line above it.
 6. **Export.** `Export .dmll` downloads the file. `Import` opens a `.dmll` or `.lrc` file to keep editing it.

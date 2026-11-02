@@ -2,6 +2,7 @@ import { FastForward, Pause, Play, Rewind } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cx } from "@/lib/cx";
+import { PLAYBACK_RATES, type PlaybackRate } from "@/lib/playback";
 import type { SyncMode } from "@/lib/dmll/sync";
 import { formatTime } from "@/lib/dmll/time";
 
@@ -11,7 +12,9 @@ interface TransportProps {
   time: number;
   duration: number;
   mode: SyncMode;
+  rate: PlaybackRate;
   onModeChange: (mode: SyncMode) => void;
+  onRateChange: (rate: PlaybackRate) => void;
   onTogglePlay: () => void;
   onSkip: (seconds: number) => void;
   onSeek: (time: number) => void;
@@ -28,7 +31,9 @@ export function Transport({
   time,
   duration,
   mode,
+  rate,
   onModeChange,
+  onRateChange,
   onTogglePlay,
   onSkip,
   onSeek,
@@ -104,9 +109,27 @@ export function Transport({
           ))}
         </div>
 
+        <div role="group" aria-label="Playback speed" className="flex rounded-md border border-border p-0.5 text-xs">
+          {PLAYBACK_RATES.map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={rate === value}
+              title={`Play at ${value}×. The playhead stays media time, so taps stay correct.`}
+              onClick={() => onRateChange(value)}
+              className={cx(
+                "rounded-sm px-2 py-1 font-medium tabular-nums transition-colors",
+                rate === value ? "bg-primary text-on-primary" : "text-text-secondary hover:text-text-primary",
+              )}
+            >
+              {value}×
+            </button>
+          ))}
+        </div>
+
         <p className="w-full text-xs leading-relaxed text-text-tertiary">
-          Space tap · Shift+Space end word · Enter end line · Backspace undo · P play · ←/→ seek · S / E set the
-          selected word&apos;s start / end · , . ; &apos; nudge it (hold Shift for bigger steps)
+          Space tap · Shift+Space end word · Enter end line · Backspace undo · P play · ←/→ seek · [ ] speed · S / E
+          set the selected word&apos;s start / end · , . ; &apos; nudge it (hold Shift for bigger steps)
         </p>
       </div>
     </footer>
