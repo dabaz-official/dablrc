@@ -21,6 +21,8 @@ export interface LyricRowProps {
   cursor: number;
   /** The selected token of this line, or -1. */
   selected: number;
+  /** Whether to hint that Enter moves on, shown when nothing is left to stamp. */
+  endHint: boolean;
   time: number;
   onActivate: (entry: number, start: number | undefined) => void;
   onSelectToken: (ref: TokenRef, start: number | undefined) => void;
@@ -64,6 +66,7 @@ export const LyricRow = memo(function LyricRow({
   isActive,
   cursor,
   selected,
+  endHint,
   time,
   onActivate,
   onSelectToken,
@@ -151,6 +154,11 @@ export const LyricRow = memo(function LyricRow({
             {token.text}
           </button>
         ))}
+        {endHint && (
+          <span className="ml-2 select-none rounded-xs border border-border px-1 align-middle text-xs text-text-tertiary">
+            Enter ↵
+          </span>
+        )}
       </p>
 
       {isTimed(entry) && (

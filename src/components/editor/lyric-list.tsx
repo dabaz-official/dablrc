@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 
 import type { TokenRef } from "@/lib/dmll/sync";
+import { hasOpenWord } from "@/lib/dmll/model";
 import type { Lyrics, Voice } from "@/lib/dmll/types";
 
 import { LyricRow } from "./lyric-row";
@@ -69,6 +70,7 @@ export function LyricList({
             isActive={index === active}
             cursor={index === active ? cursor : -1}
             selected={selected?.entry === index ? selected.token : -1}
+            endHint={index === active && !hasOpenWord(entry)}
             time={time}
             onActivate={onActivate}
             onSelectToken={onSelectToken}
