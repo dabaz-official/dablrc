@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from "react";
 
+import type { PlaybackRate } from "@/lib/playback";
+
 /** Owns the `<audio>` element and the playhead the editor reads from it. */
 export function usePlayback() {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -10,6 +12,7 @@ export function usePlayback() {
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [rate, setRateState] = useState<PlaybackRate>(1);
 
   // While playing, read the clock every frame. The audio events cover pauses and seeks.
   useEffect(() => {
@@ -22,6 +25,16 @@ export function usePlayback() {
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [playing]);
+
+  // A new source resets the element's rate, so this follows both.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.defaultPlaybackRate = rate;
+    audio.playbackRate = rate;
+    // Keep the voice recognisable while the track runs slow.
+    audio.preservesPitch = true;
+  }, [rate, src]);
 
   useEffect(() => {
     return () => {
@@ -38,6 +51,9 @@ export function usePlayback() {
   }, []);
 
   const currentTime = useCallback(() => audioRef.current?.currentTime ?? 0, []);
+
+  /** Changes speed without moving the playhead, so timing already taken stays right. */
+  const setRate = useCallback((value: PlaybackRate) => setRateState(value), []);
 
   const seek = useCallback((to: number) => {
     const audio = audioRef.current;
@@ -63,6 +79,8 @@ export function usePlayback() {
     time,
     duration,
     playing,
+    rate,
+    setRate,
     currentTime,
     seek,
     togglePlay,

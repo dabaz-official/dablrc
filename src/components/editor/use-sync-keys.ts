@@ -3,6 +3,7 @@
 import { useEffect, type Dispatch } from "react";
 
 import type { Action, SyncMode } from "@/lib/dmll/sync";
+import { cycleRate, type PlaybackRate } from "@/lib/playback";
 
 const SEEK_STEP = 2;
 const COARSE_SEEK_STEP = 10;
@@ -16,6 +17,8 @@ interface SyncKeys {
   dispatch: Dispatch<Action>;
   mode: SyncMode;
   hasAudio: boolean;
+  rate: PlaybackRate;
+  onRateChange: (rate: PlaybackRate) => void;
   currentTime: () => number;
   seek: (time: number) => void;
   togglePlay: () => void;
@@ -38,7 +41,16 @@ function releaseFocus() {
  * the selected word; the punctuation keys nudge it. Keys are read by position
  * (`event.code`), so they work on any keyboard layout.
  */
-export function useSyncKeys({ dispatch, mode, hasAudio, currentTime, seek, togglePlay }: SyncKeys) {
+export function useSyncKeys({
+  dispatch,
+  mode,
+  hasAudio,
+  rate,
+  onRateChange,
+  currentTime,
+  seek,
+  togglePlay,
+}: SyncKeys) {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.altKey || isTypingTarget(event.target)) return;
@@ -88,6 +100,12 @@ export function useSyncKeys({ dispatch, mode, hasAudio, currentTime, seek, toggl
         case "KeyE":
           dispatch({ type: "restamp", edge: "end", time });
           break;
+        case "BracketLeft":
+          onRateChange(cycleRate(rate, -1));
+          break;
+        case "BracketRight":
+          onRateChange(cycleRate(rate, 1));
+          break;
         case "Comma":
           dispatch({ type: "nudge", edge: "start", delta: -nudgeBy });
           break;
@@ -109,5 +127,5 @@ export function useSyncKeys({ dispatch, mode, hasAudio, currentTime, seek, toggl
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [dispatch, mode, hasAudio, currentTime, seek, togglePlay]);
+  }, [dispatch, mode, hasAudio, rate, onRateChange, currentTime, seek, togglePlay]);
 }
