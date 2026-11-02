@@ -42,6 +42,11 @@ export function resolveVoices(lyrics: Lyrics): Voice[] {
   });
 }
 
+/** Whether a line still has a word that has started but not ended. */
+export function hasOpenWord(entry: LineEntry): boolean {
+  return entry.tokens.some((token) => token.start !== undefined && token.end === undefined);
+}
+
 export interface Summary {
   lyrics: number;
   adlibs: number;

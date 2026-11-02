@@ -10,7 +10,7 @@ Create and edit DMLL lyric files for DabMusic. Paste the lyrics, load the track,
    Pasting again never throws work away: a line whose text did not change keeps the timing it already has,
    and a line that only moved is re-timed with its words.
 3. **Sync.** Play the track and tap:
-   - `Space` stamps the start of the next word, and the previous word ends there.
+   - `Space` stamps the start of the next word, and the previous word ends there. After the last word it ends that word, so a line of one word is closed by its second tap.
    - `Shift+Space` ends the current word early, for a pause after it.
    - `Enter` ends the line and moves on to the next one.
    - `Backspace` or `Ctrl/Cmd+Z` undoes the last change.

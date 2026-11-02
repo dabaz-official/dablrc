@@ -179,7 +179,9 @@ function tap(state: EditorState, time: number, mode: SyncMode): EditorState {
   }
 
   const { cursor } = state;
-  if (cursor >= line.tokens.length) return state;
+  // Nothing left to stamp: the tap ends the word still being sung, so the last
+  // word of a line (or a line of one word) can be closed without leaving it open.
+  if (cursor >= line.tokens.length) return endOpenWord(state, time);
 
   const at = roundTime(time);
   const tokens = line.tokens.map((token, index): Token => {

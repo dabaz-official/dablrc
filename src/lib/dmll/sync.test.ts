@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { parseLyrics } from "./parse";
+import { summarize } from "./model";
 import { EMPTY_HISTORY, historyReducer, type Action, type History } from "./sync";
 import { lineAt } from "./test-helpers";
 
@@ -47,6 +48,22 @@ describe("word sync", () => {
       { text: "Drugs ", start: 0.8, end: 0.95 },
       { text: "got", start: 1.2, end: 1.5 },
     ]);
+  });
+
+  it("ends the last word when there is no next word to stamp", () => {
+    // A one-word line: the second tap is the word's end, not a no-op.
+    const single = run(start("Woah"), tap(1), tap(1.5));
+    expect(line(single, 0).tokens).toEqual([{ text: "Woah", start: 1, end: 1.5 }]);
+    expect(summarize(single.present.lyrics)).toMatchObject({ wordSynced: 1, partial: 0, lineOnly: 0 });
+
+    // A two-word line: the third tap ends the last word and stays on the line.
+    const pair = run(start("one two"), tap(1), tap(1.4), tap(1.8));
+    expect(line(pair, 0).tokens).toEqual([
+      { text: "one ", start: 1, end: 1.4 },
+      { text: "two", start: 1.4, end: 1.8 },
+    ]);
+    expect(summarize(pair.present.lyrics)).toMatchObject({ wordSynced: 1, partial: 0 });
+    expect(pair.present.active).toBe(0);
   });
 
   it("moves on to the next line when a line is closed", () => {
