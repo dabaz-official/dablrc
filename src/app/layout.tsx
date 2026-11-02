@@ -1,41 +1,35 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import type { Metadata } from "next";
+import localFont from "next/font/local";
+import type { ReactNode } from "react";
 
-import './globals.css';
-import { ThemeProvider } from '@/components/providers/theme-provider';
-import { AudioProvider } from '@/contexts/AudioContext';
-import LayoutContent from '@/components/layout/LayoutContent';
+import { ThemeProvider } from "@/components/theme-provider";
 
-const inter = Inter({
-  subsets: ['latin'],
-})
+import "./globals.css";
+
+// Latin subset only, the same Inter file DabMusic ships.
+const inter = localFont({
+  src: "./fonts/InterVariable.woff2",
+  variable: "--font-inter",
+  display: "swap",
+  weight: "100 900",
+});
 
 export const metadata: Metadata = {
   title: {
     default: "DabLRC",
-    template: "%s - DabLRC",
+    template: "%s | DabLRC",
   },
-  description: "Create and edit your LRC files.",
+  description: "Create and edit DMLL lyric files, with word-level timing for the sweep.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
+    // suppressHydrationWarning: next-themes sets the theme class on <html>
+    // before hydration.
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${inter.className} bg-neutral-100 dark:bg-neutral-900 antialiased`}
-      >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-        >
-          <AudioProvider>
-            <LayoutContent>{children}</LayoutContent>
-          </AudioProvider>
+      <body className={`${inter.variable} font-sans antialiased`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          {children}
         </ThemeProvider>
       </body>
     </html>

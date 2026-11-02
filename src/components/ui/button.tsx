@@ -1,59 +1,32 @@
-import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
-import { cva, type VariantProps } from "class-variance-authority"
+import type { ComponentProps } from "react";
 
-import { cn } from "@/lib/utils"
+import { cx } from "@/lib/cx";
 
-const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-  {
-    variants: {
-      variant: {
-        default:
-          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
-        outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
-        secondary:
-          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
-        ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  }
-)
+type Variant = "default" | "primary" | "ghost";
+type Size = "sm" | "md" | "icon" | "icon-sm";
 
-function Button({
-  className,
-  variant,
-  size,
-  asChild = false,
-  ...props
-}: React.ComponentProps<"button"> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean
-  }) {
-  const Comp = asChild ? Slot : "button"
+const BASE =
+  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:pointer-events-none disabled:opacity-40";
 
-  return (
-    <Comp
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
-  )
+const VARIANTS: Record<Variant, string> = {
+  default: "border border-border bg-surface text-text-primary hover:bg-surface-secondary",
+  primary: "bg-primary text-on-primary hover:bg-primary-hover",
+  ghost: "text-text-secondary hover:bg-surface-secondary hover:text-text-primary",
+};
+
+const SIZES: Record<Size, string> = {
+  sm: "h-7 px-2 text-xs",
+  md: "h-9 px-3 text-sm",
+  icon: "size-9",
+  "icon-sm": "size-7",
+};
+
+export interface ButtonProps extends ComponentProps<"button"> {
+  variant?: Variant;
+  size?: Size;
 }
 
-export { Button, buttonVariants }
+/** A button in DabMusic's palette. `type` defaults to "button", so it never submits a form. */
+export function Button({ variant = "default", size = "md", className, type = "button", ...props }: ButtonProps) {
+  return <button type={type} className={cx(BASE, VARIANTS[variant], SIZES[size], className)} {...props} />;
+}
