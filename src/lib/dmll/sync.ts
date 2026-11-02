@@ -1,0 +1,312 @@
+import { isLine, nextLine, parentOf, resolveVoices, type LineEntry } from "./model";
+import { roundTime } from "./time";
+import type { Entry, Lyrics, Token } from "./types";
+
+/** `word` taps the next word of the active line; `line` taps the line start. */
+export type SyncMode = "word" | "line";
+
+/** A token, by its entry index in the lyrics and its index within that line. */
+export interface TokenRef {
+  entry: number;
+  token: number;
+}
+
+/** The lyrics, plus where syncing currently is. */
+export interface EditorState {
+  lyrics: Lyrics;
+  /** The line the next tap writes to, or -1 when no line is being synced. */
+  active: number;
+  /** The token of the active line that the next tap writes to. */
+  cursor: number;
+  /** The token that the restamp and nudge keys act on. */
+  selected?: TokenRef;
+}
+
+export interface History {
+  past: EditorState[];
+  present: EditorState;
+}
+
+type Edge = "start" | "end";
+
+export type Action =
+  | { type: "load"; lyrics: Lyrics }
+  | { type: "replace"; lyrics: Lyrics }
+  | { type: "activate"; entry: number; time: number }
+  | { type: "selectToken"; ref: TokenRef; time: number }
+  | { type: "tap"; time: number; mode: SyncMode }
+  | { type: "endWord"; time: number }
+  | { type: "closeLine"; time: number }
+  | { type: "restamp"; edge: Edge; time: number }
+  | { type: "nudge"; edge: Edge; delta: number }
+  | { type: "toggleVoice"; entry: number }
+  | { type: "toggleAdlib"; entry: number }
+  | { type: "clearTiming"; entry: number }
+  | { type: "estimate" }
+  | { type: "undo" };
+
+const HISTORY_LIMIT = 200;
+/** Seconds given to a timed line that has no timed line after it. */
+const FALLBACK_SPAN = 3;
+
+/** Actions that change the lyrics. Selection and navigation are not undo steps. */
+const RECORDED = new Set<Action["type"]>([
+  "replace",
+  "tap",
+  "endWord",
+  "closeLine",
+  "restamp",
+  "nudge",
+  "toggleVoice",
+  "toggleAdlib",
+  "clearTiming",
+  "estimate",
+]);
+
+export function createState(lyrics: Lyrics): EditorState {
+  const active = lyrics.findIndex((entry) => isLine(entry));
+  const line = active < 0 ? undefined : lyrics[active];
+  return { lyrics, active, cursor: isLine(line) ? firstOpenToken(line.tokens) : 0 };
+}
+
+export const EMPTY_HISTORY: History = { past: [], present: createState([]) };
+
+/** Applies an action, keeping the states that `undo` steps back through. */
+export function historyReducer(history: History, action: Action): History {
+  if (action.type === "load") return { past: [], present: createState(action.lyrics) };
+  if (action.type === "undo") {
+    const previous = history.past[history.past.length - 1];
+    return previous ? { past: history.past.slice(0, -1), present: previous } : history;
+  }
+
+  const present = step(history.present, action);
+  if (present === history.present) return history;
+  if (!RECORDED.has(action.type)) return { past: history.past, present };
+  return { past: [...history.past.slice(-(HISTORY_LIMIT - 1)), history.present], present };
+}
+
+function step(state: EditorState, action: Action): EditorState {
+  switch (action.type) {
+    case "replace":
+      return createState(action.lyrics);
+    case "activate":
+      return activate(state, action.entry, action.time);
+    case "selectToken":
+      return selectToken(state, action.ref, action.time);
+    case "tap":
+      return tap(state, action.time, action.mode);
+    case "endWord":
+      return endOpenWord(state, action.time);
+    case "closeLine":
+      return closeLine(state, action.time);
+    case "restamp":
+      return restamp(state, action.edge, action.time);
+    case "nudge":
+      return nudge(state, action.edge, action.delta);
+    case "toggleVoice":
+      return toggleVoice(state, action.entry);
+    case "toggleAdlib":
+      return toggleAdlib(state, action.entry);
+    case "clearTiming":
+      return clearTiming(state, action.entry);
+    case "estimate":
+      return estimate(state);
+    default:
+      return state;
+  }
+}
+
+function lineAt(state: EditorState, index: number): LineEntry | undefined {
+  const entry = index >= 0 ? state.lyrics[index] : undefined;
+  return isLine(entry) ? entry : undefined;
+}
+
+function setLine(lyrics: Lyrics, index: number, entry: Entry): Lyrics {
+  return lyrics.map((item, i) => (i === index ? entry : item));
+}
+
+/** The token a new tap would write to: the first one without a start. */
+function firstOpenToken(tokens: Token[]): number {
+  const index = tokens.findIndex((token) => token.start === undefined);
+  return index < 0 ? 0 : index;
+}
+
+/** A word that has its start but is still waiting for its end. */
+function isEndPending(token: Token): boolean {
+  return token.start !== undefined && token.end === undefined;
+}
+
+/** Ends a word at `time`, never before its start. */
+function endAt(token: Token, time: number): Token {
+  return { ...token, end: Math.max(token.start ?? time, roundTime(time)) };
+}
+
+/** Ends the word just before the cursor, if it is still waiting for its end. */
+function endOpenWord(state: EditorState, time: number): EditorState {
+  const line = lineAt(state, state.active);
+  const index = state.cursor - 1;
+  const token = line?.tokens[index];
+  if (!line || !token || !isEndPending(token)) return state;
+
+  const tokens = line.tokens.map((item, i) => (i === index ? endAt(item, time) : item));
+  return { ...state, lyrics: setLine(state.lyrics, state.active, { ...line, tokens }) };
+}
+
+/** Makes `entry` the line being synced, ending the word still open on the line being left. */
+function activate(state: EditorState, entry: number, time: number): EditorState {
+  const closed = endOpenWord(state, time);
+  const line = lineAt(closed, entry);
+  if (!line) return { ...closed, active: -1, cursor: 0, selected: undefined };
+  return { ...closed, active: entry, cursor: firstOpenToken(line.tokens), selected: undefined };
+}
+
+/** Points the cursor and the nudge keys at one token, switching lines when needed. */
+function selectToken(state: EditorState, ref: TokenRef, time: number): EditorState {
+  const base = ref.entry === state.active ? state : activate(state, ref.entry, time);
+  const line = lineAt(base, ref.entry);
+  if (!line || !line.tokens[ref.token]) return base;
+  return { ...base, cursor: ref.token, selected: ref };
+}
+
+/** Taps the next word of the active line, or its start in line mode. */
+function tap(state: EditorState, time: number, mode: SyncMode): EditorState {
+  const line = lineAt(state, state.active);
+  if (!line) return state;
+
+  if (mode === "line") {
+    const lyrics = setLine(state.lyrics, state.active, { ...line, start: roundTime(time) });
+    return activate({ ...state, lyrics }, nextLine(lyrics, state.active), time);
+  }
+
+  const { cursor } = state;
+  if (cursor >= line.tokens.length) return state;
+
+  const at = roundTime(time);
+  const tokens = line.tokens.map((token, index): Token => {
+    if (index === cursor - 1 && isEndPending(token)) return endAt(token, at);
+    if (index === cursor) return { text: token.text, start: at };
+    return token;
+  });
+  const start = cursor === 0 ? at : (line.start ?? at);
+  const lyrics = setLine(state.lyrics, state.active, { ...line, start, tokens });
+  return { ...state, lyrics, cursor: cursor + 1, selected: { entry: state.active, token: cursor } };
+}
+
+/** Ends the open word and moves on to the next line. */
+function closeLine(state: EditorState, time: number): EditorState {
+  if (state.active < 0) return state;
+  return activate(state, nextLine(state.lyrics, state.active), time);
+}
+
+function withStart(token: Token, start: number): Token {
+  return { ...token, start, end: token.end === undefined ? undefined : Math.max(token.end, start) };
+}
+
+function withEnd(token: Token, end: number): Token {
+  return { ...token, end: Math.max(token.start ?? end, end) };
+}
+
+function editToken(state: EditorState, ref: TokenRef, change: (token: Token) => Token): EditorState {
+  const line = lineAt(state, ref.entry);
+  const token = line?.tokens[ref.token];
+  if (!line || !token) return state;
+
+  const tokens = line.tokens.map((item, index) => (index === ref.token ? change(token) : item));
+  const start = ref.token === 0 && tokens[0].start !== undefined ? tokens[0].start : line.start;
+  return { ...state, lyrics: setLine(state.lyrics, ref.entry, { ...line, start, tokens }) };
+}
+
+/** Sets the selected word's start or end to the playhead. */
+function restamp(state: EditorState, edge: Edge, time: number): EditorState {
+  if (!state.selected) return state;
+  const at = roundTime(time);
+  return editToken(state, state.selected, (token) =>
+    edge === "start" ? withStart(token, at) : withEnd(token, at),
+  );
+}
+
+/** Moves the selected word's start or end by `delta` seconds. */
+function nudge(state: EditorState, edge: Edge, delta: number): EditorState {
+  if (!state.selected) return state;
+  return editToken(state, state.selected, (token) => {
+    if (edge === "start") {
+      return token.start === undefined ? token : withStart(token, roundTime(token.start + delta));
+    }
+    return token.end === undefined ? token : withEnd(token, roundTime(token.end + delta));
+  });
+}
+
+function toggleVoice(state: EditorState, index: number): EditorState {
+  const entry = lineAt(state, index);
+  if (entry?.kind !== "lyric") return state;
+  const voice = entry.voice === "left" ? "right" : "left";
+  return { ...state, lyrics: setLine(state.lyrics, index, { ...entry, voice }) };
+}
+
+/** Turns a lyric line into an ad-lib under the lyric above it, and back. */
+function toggleAdlib(state: EditorState, index: number): EditorState {
+  const entry = lineAt(state, index);
+  if (!entry) return state;
+
+  if (entry.kind === "lyric") {
+    if (parentOf(state.lyrics, index) < 0) return state;
+    const adlib = { kind: "adlib" as const, start: entry.start, tokens: entry.tokens };
+    return { ...state, lyrics: setLine(state.lyrics, index, adlib) };
+  }
+
+  const voice = resolveVoices(state.lyrics)[index];
+  const lyric = { kind: "lyric" as const, voice, start: entry.start, tokens: entry.tokens };
+  return { ...state, lyrics: setLine(state.lyrics, index, lyric) };
+}
+
+function clearTiming(state: EditorState, index: number): EditorState {
+  const entry = lineAt(state, index);
+  if (!entry) return state;
+
+  const tokens = entry.tokens.map(({ text }): Token => ({ text }));
+  return {
+    ...state,
+    lyrics: setLine(state.lyrics, index, { ...entry, start: undefined, tokens }),
+    cursor: index === state.active ? 0 : state.cursor,
+    selected: state.selected?.entry === index ? undefined : state.selected,
+  };
+}
+
+/** The start of the next line that has a timestamp, if there is one. */
+function nextStart(lyrics: Lyrics, index: number): number | undefined {
+  for (let later = index + 1; later < lyrics.length; later++) {
+    const entry = lyrics[later];
+    if (isLine(entry) && entry.start !== undefined) return entry.start;
+  }
+  return undefined;
+}
+
+/** Spreads `from`–`to` over the words in proportion to their length, end to start. */
+function spreadWords(tokens: Token[], from: number, to: number): Token[] {
+  const span = Math.max(0, to - from);
+  const weights = tokens.map((token) => Math.max(1, token.text.trim().length));
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+
+  let elapsed = 0;
+  return tokens.map((token, index) => {
+    const start = from + (span * elapsed) / total;
+    elapsed += weights[index];
+    const end = index === tokens.length - 1 ? to : from + (span * elapsed) / total;
+    return { text: token.text, start: roundTime(start), end: roundTime(end) };
+  });
+}
+
+/** Gives every line that has a timestamp but no word timing an estimated word timing. */
+function estimate(state: EditorState): EditorState {
+  const needs = state.lyrics.map(
+    (entry) => isLine(entry) && entry.start !== undefined && entry.tokens.every((token) => token.start === undefined),
+  );
+  if (!needs.includes(true)) return state;
+
+  const lyrics = state.lyrics.map((entry, index) => {
+    if (!needs[index] || !isLine(entry) || entry.start === undefined) return entry;
+    const to = nextStart(state.lyrics, index) ?? entry.start + FALLBACK_SPAN;
+    return { ...entry, tokens: spreadWords(entry.tokens, entry.start, to) };
+  });
+  return { ...state, lyrics };
+}
