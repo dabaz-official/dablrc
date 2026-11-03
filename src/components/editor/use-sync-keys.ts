@@ -22,6 +22,8 @@ interface SyncKeys {
   currentTime: () => number;
   seek: (time: number) => void;
   togglePlay: () => void;
+  /** Opens the inline editor for the selected word. */
+  onEditSelected: () => void;
 }
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -38,8 +40,8 @@ function releaseFocus() {
 /**
  * The sync keys. Space taps the next word, Enter ends the line, Shift+Space ends
  * the word for a pause, and Backspace undoes. The arrows seek; S and E re-stamp
- * the selected word; the punctuation keys nudge it. Keys are read by position
- * (`event.code`), so they work on any keyboard layout.
+ * the selected word; the punctuation keys nudge it; F2 edits its text. Keys are
+ * read by position (`event.code`), so they work on any keyboard layout.
  */
 export function useSyncKeys({
   dispatch,
@@ -50,6 +52,7 @@ export function useSyncKeys({
   currentTime,
   seek,
   togglePlay,
+  onEditSelected,
 }: SyncKeys) {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -68,9 +71,12 @@ export function useSyncKeys({
       const coarse = event.shiftKey;
       const seekBy = coarse ? COARSE_SEEK_STEP : SEEK_STEP;
       const nudgeBy = coarse ? COARSE_NUDGE : NUDGE;
+      // Some input sources and automation send no `code`; fall back to `key`,
+      // which names the same key on every layout for the keys used here.
+      const code = event.code || event.key;
       let handled = true;
 
-      switch (event.code) {
+      switch (code) {
         case "Space":
           // Without audio there is no playhead to tap against, so Space does nothing.
           if (event.repeat || !hasAudio) break;
@@ -100,6 +106,9 @@ export function useSyncKeys({
         case "KeyE":
           dispatch({ type: "restamp", edge: "end", time });
           break;
+        case "F2":
+          onEditSelected();
+          break;
         case "BracketLeft":
           onRateChange(cycleRate(rate, -1));
           break;
@@ -127,5 +136,5 @@ export function useSyncKeys({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [dispatch, mode, hasAudio, rate, onRateChange, currentTime, seek, togglePlay]);
+  }, [dispatch, mode, hasAudio, rate, onRateChange, currentTime, seek, togglePlay, onEditSelected]);
 }

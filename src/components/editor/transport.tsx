@@ -129,7 +129,8 @@ export function Transport({
 
         <p className="w-full text-xs leading-relaxed text-text-tertiary">
           Space tap · Shift+Space end word · Enter end line · Backspace undo · P play · ←/→ seek · [ ] speed · S / E
-          set the selected word&apos;s start / end · , . ; &apos; nudge it (hold Shift for bigger steps)
+          set the selected word&apos;s start / end · , . ; &apos; nudge it (hold Shift for bigger steps) · F2 edits a
+          word
         </p>
       </div>
     </footer>
