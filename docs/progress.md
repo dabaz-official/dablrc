@@ -133,6 +133,26 @@ shows an `Enter ↵` hint.
 - The draft key is still `dablrc.draft`. Renaming it would throw away every
   draft already in a browser, so the old name stays there on purpose.
 
+### Editing a word (PR #6)
+
+Editing text used to mean the LRC-shaped panel, which has no word tokens, so
+`mergeLyrics` dropped the line's word timing as soon as the wording changed: a
+typo fix cost a whole line of synced words.
+
+- Double-click a word, or select it and press `F2`, to edit it in place. `Enter`
+  or blur saves, `Esc` cancels.
+- `src/lib/dmll/edit.ts` re-splits the typed text with `tokenize()`. One word
+  keeps its start and end exactly; several words split that span in proportion
+  to their length, the same way `estimate` spreads a line. An untimed word stays
+  untimed, and a word that had only started keeps its start on the first word.
+- The spacing invariant holds: a word keeps the space that followed it, and the
+  last word of a line keeps none, so Latin and CJK lines still join back exactly.
+- `setTokenText` is a recorded action, so one undo restores the old text and
+  timing together. The cursor and the selected word move with the words that
+  were added.
+- Keys are read by `event.code`, with `event.key` as the fallback when a source
+  sends no code (automation and some assistive input do not).
+
 ## Resolved decisions
 
 - **Word timing belongs to an exact line.** Kept only while the line's text is
@@ -163,6 +183,10 @@ shows an `Enter ↵` hint.
 - Chrome (`playwright-core` against the installed Chrome, production build):
   - tapping, voices, ad-libs, merge on text edit, reload from the draft, import
     round-trip;
+  - editing a word in place: a rename kept its word times, splitting one word
+    into two split its span (4.00–4.57 / 4.57–5.00), `F2` opened the editor,
+    `Esc` cancelled, editing the first word kept the line timestamp, and one
+    Undo restored text and timing together;
   - Line mode and `Estimate`;
   - a real 72-line LRC pasted, word-tapped, edited through the LRC-shaped panel,
     then imported over;
@@ -184,8 +208,7 @@ shows an `Enter ↵` hint.
 - `//` comments in an imported file are dropped, and `[offset:]` is ignored, as
   on the site. Files with an offset will land shifted by the same amount they do
   in DabMusic.
-- No waveform, no hold-to-sing, no keyboard-driven text editing of a single
-  word. The layout is desktop-first.
+- No waveform, no hold-to-sing. The layout is desktop-first.
 - The exported file is not written into DabMusic's album folder automatically;
   the owner places it and adds `dmll` to `album.json`.
 

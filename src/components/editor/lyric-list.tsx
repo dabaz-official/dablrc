@@ -16,8 +16,13 @@ interface LyricListProps {
   selected?: TokenRef;
   mode: SyncMode;
   time: number;
+  /** The word being edited in place, whichever row it belongs to. */
+  editing?: TokenRef;
   onActivate: (entry: number, start: number | undefined) => void;
   onSelectToken: (ref: TokenRef, start: number | undefined) => void;
+  onEditToken: (ref: TokenRef) => void;
+  onCommitToken: (ref: TokenRef, text: string) => void;
+  onCancelEdit: () => void;
   onSeek: (time: number) => void;
   onToggleVoice: (entry: number) => void;
   onToggleAdlib: (entry: number) => void;
@@ -42,8 +47,12 @@ export function LyricList({
   selected,
   mode,
   time,
+  editing,
   onActivate,
   onSelectToken,
+  onEditToken,
+  onCommitToken,
+  onCancelEdit,
   onSeek,
   onToggleVoice,
   onToggleAdlib,
@@ -75,8 +84,12 @@ export function LyricList({
             endHint={index === active && !hasOpenWord(entry)}
             mode={mode}
             time={time}
+            editing={editing?.entry === index ? editing.token : -1}
             onActivate={onActivate}
             onSelectToken={onSelectToken}
+            onEditToken={onEditToken}
+            onCommitToken={onCommitToken}
+            onCancelEdit={onCancelEdit}
             onSeek={onSeek}
             onToggleVoice={onToggleVoice}
             onToggleAdlib={onToggleAdlib}

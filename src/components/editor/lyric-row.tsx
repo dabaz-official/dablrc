@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { memo, type MouseEvent } from "react";
+import { memo, useEffect, useRef, useState, type MouseEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cx } from "@/lib/cx";
@@ -26,8 +26,13 @@ export interface LyricRowProps {
   /** Word mode paints each word by its own timing; line mode paints the whole row. */
   mode: SyncMode;
   time: number;
+  /** The word being edited in place, or -1. */
+  editing: number;
   onActivate: (entry: number, start: number | undefined) => void;
   onSelectToken: (ref: TokenRef, start: number | undefined) => void;
+  onEditToken: (ref: TokenRef) => void;
+  onCommitToken: (ref: TokenRef, text: string) => void;
+  onCancelEdit: () => void;
   onSeek: (time: number) => void;
   onToggleVoice: (entry: number) => void;
   onToggleAdlib: (entry: number) => void;
@@ -56,7 +61,7 @@ function tokenClass(token: Token, mode: SyncMode, time: number, isCursor: boolea
   const singing = token.start !== undefined && token.end !== undefined && time >= token.start && time < token.end;
 
   return cx(
-    "whitespace-pre rounded-xs transition-colors",
+    "select-none whitespace-pre rounded-xs transition-colors",
     mode === "word" && (timed ? "text-timed" : "text-text-tertiary"),
     mode === "word" && (open || singing) && "bg-timed-subtle",
     isCursor && "underline decoration-focus decoration-2 underline-offset-4",
@@ -75,8 +80,12 @@ export const LyricRow = memo(function LyricRow({
   endHint,
   mode,
   time,
+  editing,
   onActivate,
   onSelectToken,
+  onEditToken,
+  onCommitToken,
+  onCancelEdit,
   onSeek,
   onToggleVoice,
   onToggleAdlib,
@@ -85,6 +94,33 @@ export const LyricRow = memo(function LyricRow({
   const { tokens, start } = entry;
   const isAdlib = entry.kind === "adlib";
   const right = voice === "right";
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [draft, setDraft] = useState("");
+  /** Set by Escape so the blur that follows cancels instead of committing. */
+  const cancelled = useRef(false);
+
+  // Opening the editor starts from the word without its trailing space, ready to
+  // be replaced: focus and select, so typing overwrites the whole word.
+  useEffect(() => {
+    if (editing < 0) return;
+    const token = tokens[editing];
+    if (!token) return;
+    setDraft(token.text.trim());
+    cancelled.current = false;
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, [editing, tokens]);
+
+  function commit() {
+    if (editing < 0) return;
+    if (cancelled.current) {
+      cancelled.current = false;
+      onCancelEdit();
+      return;
+    }
+    onCommitToken({ entry: index, token: editing }, draft);
+  }
 
   return (
     <li
@@ -151,21 +187,51 @@ export const LyricRow = memo(function LyricRow({
           mode === "line" && (start !== undefined ? "text-timed" : "text-text-tertiary"),
         )}
       >
-        {tokens.map((token, tokenIndex) => (
-          <button
-            key={tokenIndex}
-            type="button"
-            tabIndex={-1}
-            title={describeToken(token)}
-            onClick={(event) => {
-              stop(event);
-              onSelectToken({ entry: index, token: tokenIndex }, token.start);
-            }}
-            className={tokenClass(token, mode, time, tokenIndex === cursor, tokenIndex === selected)}
-          >
-            {token.text}
-          </button>
-        ))}
+        {tokens.map((token, tokenIndex) =>
+          tokenIndex === editing ? (
+            <input
+              key={tokenIndex}
+              ref={inputRef}
+              value={draft}
+              size={Math.max(4, draft.length)}
+              spellCheck={false}
+              aria-label={`Edit ${token.text.trim()}`}
+              className="field-sizing-content min-w-6 rounded-xs bg-background px-0.5 text-text-primary ring-1 ring-focus outline-none"
+              onChange={(event) => setDraft(event.target.value)}
+              onClick={(event) => event.stopPropagation()}
+              onDoubleClick={(event) => event.stopPropagation()}
+              onBlur={commit}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  event.currentTarget.blur();
+                } else if (event.key === "Escape") {
+                  event.preventDefault();
+                  cancelled.current = true;
+                  event.currentTarget.blur();
+                }
+              }}
+            />
+          ) : (
+            <button
+              key={tokenIndex}
+              type="button"
+              tabIndex={-1}
+              title={`${describeToken(token)} — double-click to edit`}
+              onClick={(event) => {
+                stop(event);
+                onSelectToken({ entry: index, token: tokenIndex }, token.start);
+              }}
+              onDoubleClick={(event) => {
+                stop(event);
+                onEditToken({ entry: index, token: tokenIndex });
+              }}
+              className={tokenClass(token, mode, time, tokenIndex === cursor, tokenIndex === selected)}
+            >
+              {token.text}
+            </button>
+          ),
+        )}
         {endHint && (
           <span className="ml-2 select-none rounded-xs border border-border px-1 align-middle text-xs text-text-tertiary">
             Enter ↵

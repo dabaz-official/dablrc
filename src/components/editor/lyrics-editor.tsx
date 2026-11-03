@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useReducer, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 
-import { resolveVoices, summarize } from "@/lib/dmll/model";
+import { isLine, resolveVoices, summarize } from "@/lib/dmll/model";
 import { mergeLyrics } from "@/lib/dmll/merge";
 import { isTimedSource, parseLyrics } from "@/lib/dmll/parse";
 import { serializeLyrics, toLrcText } from "@/lib/dmll/serialize";
@@ -23,6 +23,13 @@ const CONFIRM_REPLACE = "Replace the lyrics and their timing?";
 /** A file name without its extension. */
 const baseName = (name: string) => name.replace(/\.[^./]+$/, "");
 
+/** Whether the lyrics still hold the token `ref` points at. */
+function hasToken(lyrics: Lyrics, ref: TokenRef | undefined): ref is TokenRef {
+  if (!ref) return false;
+  const entry = lyrics[ref.entry];
+  return isLine(entry) && ref.token < entry.tokens.length;
+}
+
 export function LyricsEditor() {
   const [history, dispatch] = useReducer(historyReducer, EMPTY_HISTORY);
   const { lyrics, active, cursor, selected } = history.present;
@@ -34,13 +41,47 @@ export function LyricsEditor() {
   const [text, setText] = useState("");
   const [audioName, setAudioName] = useState<string>();
   const [lyricsName, setLyricsName] = useState<string>();
+  /** The word whose text is being edited in place. */
+  const [editing, setEditing] = useState<TokenRef>();
 
   const summary = useMemo(() => summarize(lyrics), [lyrics]);
   const voices = useMemo(() => resolveVoices(lyrics), [lyrics]);
   const restore = useCallback((saved: Lyrics) => dispatch({ type: "load", lyrics: saved }), []);
 
   useDraft(lyrics, restore);
-  useSyncKeys({ dispatch, mode, hasAudio: playback.hasAudio, rate, onRateChange: setRate, currentTime, seek, togglePlay });
+
+  const editToken = useCallback((ref: TokenRef) => setEditing(ref), []);
+  const cancelEdit = useCallback(() => setEditing(undefined), []);
+  const commitToken = useCallback((ref: TokenRef, text: string) => {
+    dispatch({ type: "setTokenText", ref, text });
+    setEditing(undefined);
+  }, []);
+  // The key handler reads the selection that was just made, not the one it was
+  // created with, so F2 works on the very first key press after a click.
+  const selectionRef = useRef(selected);
+  useLayoutEffect(() => {
+    selectionRef.current = selected;
+  }, [selected]);
+
+  const editSelected = useCallback(() => {
+    if (selectionRef.current) setEditing(selectionRef.current);
+  }, []);
+
+  // Undo, an import or a cleared line can remove the word being edited, so the
+  // row to edit is taken from what the lyrics still hold.
+  const edited = hasToken(lyrics, editing) ? editing : undefined;
+
+  useSyncKeys({
+    dispatch,
+    mode,
+    hasAudio: playback.hasAudio,
+    rate,
+    onRateChange: setRate,
+    currentTime,
+    seek,
+    togglePlay,
+    onEditSelected: editSelected,
+  });
 
   // The paste panel is open whenever there is nothing to sync yet.
   const showPanel = panelOpen || lyrics.length === 0;
@@ -161,8 +202,12 @@ export function LyricsEditor() {
           selected={selected}
           mode={mode}
           time={playback.time}
+          editing={edited}
           onActivate={activate}
           onSelectToken={selectToken}
+          onEditToken={editToken}
+          onCommitToken={commitToken}
+          onCancelEdit={cancelEdit}
           onSeek={seek}
           onToggleVoice={toggleVoice}
           onToggleAdlib={toggleAdlib}

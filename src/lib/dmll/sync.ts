@@ -1,3 +1,4 @@
+import { setTokenText } from "./edit";
 import { isLine, nextLine, parentOf, resolveVoices, type LineEntry } from "./model";
 import { roundTime } from "./time";
 import type { Entry, Lyrics, Token } from "./types";
@@ -39,6 +40,7 @@ export type Action =
   | { type: "closeLine"; time: number }
   | { type: "restamp"; edge: Edge; time: number }
   | { type: "nudge"; edge: Edge; delta: number }
+  | { type: "setTokenText"; ref: TokenRef; text: string }
   | { type: "toggleVoice"; entry: number }
   | { type: "toggleAdlib"; entry: number }
   | { type: "clearTiming"; entry: number }
@@ -57,6 +59,7 @@ const RECORDED = new Set<Action["type"]>([
   "closeLine",
   "restamp",
   "nudge",
+  "setTokenText",
   "toggleVoice",
   "toggleAdlib",
   "clearTiming",
@@ -103,6 +106,8 @@ function step(state: EditorState, action: Action): EditorState {
       return restamp(state, action.edge, action.time);
     case "nudge":
       return nudge(state, action.edge, action.delta);
+    case "setTokenText":
+      return editTokenText(state, action.ref, action.text);
     case "toggleVoice":
       return toggleVoice(state, action.entry);
     case "toggleAdlib":
@@ -236,6 +241,33 @@ function nudge(state: EditorState, edge: Edge, delta: number): EditorState {
     }
     return token.end === undefined ? token : withEnd(token, roundTime(token.end + delta));
   });
+}
+
+/**
+ * Replaces one word's text, keeping its timing. A word that turns into several
+ * words splits its own span, so the cursor and the selected word still point at
+ * the same place in the line.
+ */
+function editTokenText(state: EditorState, ref: TokenRef, text: string): EditorState {
+  const line = lineAt(state, ref.entry);
+  if (!line || !line.tokens[ref.token]) return state;
+
+  const { tokens, shift } = setTokenText(line.tokens, ref.token, text);
+  if (tokens === line.tokens) return state;
+
+  const start = ref.token === 0 && tokens[0].start !== undefined ? tokens[0].start : line.start;
+  const lyrics = setLine(state.lyrics, ref.entry, { ...line, start, tokens });
+
+  const cursor =
+    ref.entry === state.active && state.cursor > ref.token
+      ? Math.min(state.cursor + shift, tokens.length)
+      : state.cursor;
+  const selected =
+    state.selected?.entry === ref.entry && state.selected.token > ref.token
+      ? { ...state.selected, token: state.selected.token + shift }
+      : state.selected;
+
+  return { ...state, lyrics, cursor, selected };
 }
 
 function toggleVoice(state: EditorState, index: number): EditorState {

@@ -122,6 +122,55 @@ describe("estimate", () => {
   });
 });
 
+describe("editing a word", () => {
+  it("keeps the timing of the word it replaces", () => {
+    const history = run(start("Drugs got me"), tap(0.8), tap(1.07), tap(1.31));
+    const edited = run(history, { type: "setTokenText", ref: { entry: 0, token: 1 }, text: "GOT" });
+
+    expect(line(edited, 0).tokens[1]).toEqual({ text: "GOT ", start: 1.07, end: 1.31 });
+    expect(edited.present.active).toBe(0);
+  });
+
+  it("moves the cursor and the selection when a word splits in two", () => {
+    const history = run(start("one two three"), tap(1), tap(2));
+    const edited = run(history, {
+      type: "setTokenText",
+      ref: { entry: 0, token: 0 },
+      text: "one and a half",
+    });
+
+    expect(line(edited, 0).tokens.map((token) => token.text)).toEqual([
+      "one ",
+      "and ",
+      "a ",
+      "half ",
+      "two ",
+      "three",
+    ]);
+    // Both indexes still point at the words they did before the edit.
+    expect(edited.present.cursor).toBe(5);
+    expect(edited.present.selected).toEqual({ entry: 0, token: 4 });
+  });
+
+  it("undoes back to the old text and timing in one step", () => {
+    const history = run(start("one two"), tap(1), tap(2));
+    const edited = run(history, { type: "setTokenText", ref: { entry: 0, token: 0 }, text: "one and a half" });
+    const undone = run(edited, { type: "undo" });
+
+    expect(line(undone, 0).tokens).toEqual([
+      { text: "one ", start: 1, end: 2 },
+      { text: "two", start: 2 },
+    ]);
+  });
+
+  it("does not record an edit that changed nothing", () => {
+    const history = run(start("one two"), tap(1));
+    const edited = run(history, { type: "setTokenText", ref: { entry: 0, token: 0 }, text: "one" });
+
+    expect(edited).toBe(history);
+  });
+});
+
 describe("ad-libs and voices", () => {
   it("turns a line into an ad-lib only when a lyric line sits above it", () => {
     const history = run(start("A\nB"), { type: "toggleAdlib", entry: 0 }, { type: "toggleAdlib", entry: 1 });
