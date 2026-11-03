@@ -159,6 +159,7 @@ export function LyricsEditor() {
           active={active}
           cursor={cursor}
           selected={selected}
+          mode={mode}
           time={playback.time}
           onActivate={activate}
           onSelectToken={selectToken}

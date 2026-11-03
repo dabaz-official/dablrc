@@ -20,7 +20,7 @@ Create and edit DMLL lyric files for DabMusic. Paste the lyrics, load the track,
 5. **Shape.** `L` / `R` moves a line to the other side. `Ad-lib` turns a line into an ad-lib under the line above it.
 6. **Export.** `Export .dmll` downloads the file. `Import` opens a `.dmll` or `.lrc` file to keep editing it.
 
-The Word / Line switch in the bottom bar sets what `Space` does. In Line mode it only stamps line starts, and `Estimate` then spreads each line's words across the time up to the next line.
+The Word / Line switch in the bottom bar sets what `Space` does. In Line mode it only stamps line starts, and `Estimate` then spreads each line's words across the time up to the next line. In Word mode, words that carry a time are blue; in Line mode, lines that carry a timestamp are blue. Gray means still to do.
 
 `Edit lyrics` shows the lyrics the way an LRC file would, timestamps included, so a wording fix keeps its line's time. Words are timed per line, so a line whose words change loses its word timing and keeps its line timestamp; a line whose text is untouched keeps everything.
 

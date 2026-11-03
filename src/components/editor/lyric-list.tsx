@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 
-import type { TokenRef } from "@/lib/dmll/sync";
+import type { SyncMode, TokenRef } from "@/lib/dmll/sync";
 import { hasOpenWord } from "@/lib/dmll/model";
 import type { Lyrics, Voice } from "@/lib/dmll/types";
 
@@ -14,6 +14,7 @@ interface LyricListProps {
   active: number;
   cursor: number;
   selected?: TokenRef;
+  mode: SyncMode;
   time: number;
   onActivate: (entry: number, start: number | undefined) => void;
   onSelectToken: (ref: TokenRef, start: number | undefined) => void;
@@ -39,6 +40,7 @@ export function LyricList({
   active,
   cursor,
   selected,
+  mode,
   time,
   onActivate,
   onSelectToken,
@@ -71,6 +73,7 @@ export function LyricList({
             cursor={index === active ? cursor : -1}
             selected={selected?.entry === index ? selected.token : -1}
             endHint={index === active && !hasOpenWord(entry)}
+            mode={mode}
             time={time}
             onActivate={onActivate}
             onSelectToken={onSelectToken}
