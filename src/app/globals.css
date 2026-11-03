@@ -42,6 +42,9 @@
   --dz-color-danger: #cc3336;
   --dz-color-danger-subtle: #ffe4e1;
   --dz-color-focus: #4c89ef;
+  /* "Timed" blue: words and lines that already carry a time. 6.7:1 on white. */
+  --dz-color-timed: #1d4ed8;
+  --dz-color-timed-subtle: #e8efff;
   --dz-color-selection-bg: var(--dz-gray-900);
   --dz-color-selection-fg: var(--dz-gray-0);
 
@@ -70,6 +73,9 @@
   --dz-color-warning-subtle: #423000;
   --dz-color-danger: #f3827a;
   --dz-color-danger-subtle: #65000a;
+  /* The timed blue lifted for the dark page: 7.9:1 on #1f1f1f. */
+  --dz-color-timed: #8ab4ff;
+  --dz-color-timed-subtle: #1b2a42;
   --dz-color-selection-bg: var(--dz-gray-50);
   --dz-color-selection-fg: var(--dz-gray-950);
 
@@ -103,6 +109,8 @@
   --color-danger: var(--dz-color-danger);
   --color-danger-subtle: var(--dz-color-danger-subtle);
   --color-focus: var(--dz-color-focus);
+  --color-timed: var(--dz-color-timed);
+  --color-timed-subtle: var(--dz-color-timed-subtle);
   --color-selection-bg: var(--dz-color-selection-bg);
   --color-selection-fg: var(--dz-color-selection-fg);
   --color-primary: var(--dz-color-primary);

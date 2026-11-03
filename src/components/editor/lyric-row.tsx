@@ -6,7 +6,7 @@ import { memo, type MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { cx } from "@/lib/cx";
 import { isTimed, type LineEntry } from "@/lib/dmll/model";
-import type { TokenRef } from "@/lib/dmll/sync";
+import type { SyncMode, TokenRef } from "@/lib/dmll/sync";
 import { formatTime } from "@/lib/dmll/time";
 import type { Token, Voice } from "@/lib/dmll/types";
 
@@ -23,6 +23,8 @@ export interface LyricRowProps {
   selected: number;
   /** Whether to hint that Enter moves on, shown when nothing is left to stamp. */
   endHint: boolean;
+  /** Word mode paints each word by its own timing; line mode paints the whole row. */
+  mode: SyncMode;
   time: number;
   onActivate: (entry: number, start: number | undefined) => void;
   onSelectToken: (ref: TokenRef, start: number | undefined) => void;
@@ -42,17 +44,21 @@ function describeToken({ start, end }: Token): string {
   return `${formatTime(start)} to ${end === undefined ? "open" : formatTime(end)}`;
 }
 
-/** Sung words are bright, the word being sung is shaded, and the rest stay dim. */
-function tokenClass({ start, end }: Token, time: number, isCursor: boolean, isSelected: boolean): string {
-  let tone = "text-text-tertiary";
-  if (start !== undefined) {
-    if (end !== undefined && time >= end) tone = "text-text-primary";
-    else if (time >= start) tone = "bg-primary-subtle text-text-primary";
-    else tone = "text-text-secondary";
-  }
+/**
+ * Timed words are blue and untimed ones stay dim. The word being sung (or one
+ * that started but has no end yet) carries a pale blue wash, the next word to
+ * stamp is underlined, and the selected word is ringed. Line mode paints the
+ * row instead, so the words keep a single colour.
+ */
+function tokenClass(token: Token, mode: SyncMode, time: number, isCursor: boolean, isSelected: boolean): string {
+  const timed = token.start !== undefined;
+  const open = token.start !== undefined && token.end === undefined;
+  const singing = token.start !== undefined && token.end !== undefined && time >= token.start && time < token.end;
+
   return cx(
     "whitespace-pre rounded-xs transition-colors",
-    tone,
+    mode === "word" && (timed ? "text-timed" : "text-text-tertiary"),
+    mode === "word" && (open || singing) && "bg-timed-subtle",
     isCursor && "underline decoration-focus decoration-2 underline-offset-4",
     isSelected && "ring-1 ring-focus",
   );
@@ -67,6 +73,7 @@ export const LyricRow = memo(function LyricRow({
   cursor,
   selected,
   endHint,
+  mode,
   time,
   onActivate,
   onSelectToken,
@@ -137,7 +144,12 @@ export const LyricRow = memo(function LyricRow({
       </button>
 
       <p
-        className={cx("min-w-0 flex-1 leading-7", right && "text-right", isAdlib ? "pl-4 text-sm" : "text-base")}
+        className={cx(
+          "min-w-0 flex-1 leading-7",
+          right && "text-right",
+          isAdlib ? "pl-4 text-sm" : "text-base",
+          mode === "line" && (start !== undefined ? "text-timed" : "text-text-tertiary"),
+        )}
       >
         {tokens.map((token, tokenIndex) => (
           <button
@@ -149,7 +161,7 @@ export const LyricRow = memo(function LyricRow({
               stop(event);
               onSelectToken({ entry: index, token: tokenIndex }, token.start);
             }}
-            className={tokenClass(token, time, tokenIndex === cursor, tokenIndex === selected)}
+            className={tokenClass(token, mode, time, tokenIndex === cursor, tokenIndex === selected)}
           >
             {token.text}
           </button>
