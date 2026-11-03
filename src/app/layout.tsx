@@ -14,12 +14,18 @@ const inter = localFont({
   weight: "100 900",
 });
 
+const SITE_NAME = "DabMusic Lyric Language Editor";
+/** Canonical origin, so generated metadata and images resolve to absolute URLs. */
+const SITE_URL = "https://dmll.dabaz.me";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  applicationName: SITE_NAME,
   title: {
-    default: "DabLRC",
-    template: "%s | DabLRC",
+    default: SITE_NAME,
+    template: `%s | ${SITE_NAME}`,
   },
-  description: "Create and edit DMLL lyric files, with word-level timing for the sweep.",
+  description: "Create and edit DabMusic Lyric Language (DMLL) files, with word-level timing for the sweep.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
