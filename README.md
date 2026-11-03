@@ -35,6 +35,8 @@ Progress is kept in the browser's local storage, so a reload keeps the timing. T
 
 The output is DMLL, described in DabMusic's `docs/dmll-format.md`. `src/lib/dmll/parse.ts` is a port of DabMusic's `src/lib/lrc.ts`, the reader on the site.
 
+Comments, `[ar:]`-style tags and lines with several timestamps are kept as they are. An `[offset:]` tag is preserved but not applied, which is what the site does.
+
 ## Develop
 
 ```bash

@@ -5,7 +5,8 @@ const TIME_TAG = /\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]/g;
 const WORD_TAG =
   /\{(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?~(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\}/g;
 const HAS_TIME_TAG = /\[\d{1,3}:\d{1,2}/;
-const METADATA_TAG = /^\[(ar|ti|al|by|offset|re|ve|length|dmll):/i;
+const METADATA_TAG = /^\[(ar|ti|al|by|offset|re|ve|length):/i;
+const VERSION_TAG = /^\[dmll:/i;
 const VOICE_DIRECTIVE = /^\[v:(left|right)\]$/i;
 const ADLIB_LINE = /^\[ad:(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]\s*(.*)$/i;
 const TIMED_SOURCE = /^\s*\[(\d{1,3}:\d{1,2}|ad:|v:|dmll:)/im;
@@ -97,11 +98,14 @@ function duetEntries(line: string, voice: Voice): Entry[] | undefined {
 /**
  * Reads LRC or DMLL source, or plain lyrics with one line per row. Lines are
  * kept in file order; a line with a timestamp but no text is dropped, as on the
- * site.
+ * site. Comments and metadata tags are kept so a round trip does not lose them;
+ * `[dmll:*]` is regenerated on write instead.
  */
 export function parseLyrics(source: string): Lyrics {
   const lyrics: Lyrics = [];
   let voice: Voice = "left";
+  /** Ids for the lines a multi-timestamp line expands into. */
+  let group = 0;
 
   // A byte-order mark from a text editor must not end up in the first line.
   for (const raw of source.replace(/^\uFEFF/, "").split(/\r?\n/)) {
@@ -112,7 +116,15 @@ export function parseLyrics(source: string): Lyrics {
       }
       continue;
     }
-    if (COMMENT.test(line) || METADATA_TAG.test(line)) continue;
+    if (VERSION_TAG.test(line)) continue;
+    if (COMMENT.test(line)) {
+      lyrics.push({ kind: "comment", text: line });
+      continue;
+    }
+    if (METADATA_TAG.test(line)) {
+      lyrics.push({ kind: "meta", text: line });
+      continue;
+    }
 
     const directive = VOICE_DIRECTIVE.exec(line);
     if (directive) {
@@ -135,7 +147,14 @@ export function parseLyrics(source: string): Lyrics {
     }
 
     if (HAS_TIME_TAG.test(line)) {
-      lyrics.push(...timedEntries(line, voice));
+      const entries = timedEntries(line, voice);
+      // One source line with several timestamps becomes several entries that
+      // keep a shared id, so the writer can put them back on one line.
+      if (entries.length > 1) {
+        group += 1;
+        for (const entry of entries) entry.group = group;
+      }
+      lyrics.push(...entries);
     } else {
       lyrics.push({ kind: "lyric", voice, tokens: tokenize(line) });
     }

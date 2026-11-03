@@ -50,7 +50,7 @@ on what a file means.
       (the same file and OFL licence as DabMusic); semantic colour tokens
       mirrored from its `globals.css` (light and dark), including the approved
       functional colours and the focus ring.
-- [x] Tests: vitest 5.0.5, which DabMusic does not have. 77 cases in 10 files.
+- [x] Tests: vitest 5.0.5, which DabMusic does not have. 86 cases in 10 files.
 
 ### Format core
 
@@ -203,7 +203,26 @@ leaves the file present but unused.
   edited. `Save` is enabled only while the open audio is the selected track, so
   a save cannot land on the wrong file.
 - Chrome and Edge on desktop only. Without the API the button says so, and the
-  manual export/import path still works.
+  manual export/import path still works.### Format fidelity (PR #9)
+
+Import used to drop `//` comments, `[ar:]`-style tags and the multi-timestamp
+form, so a file edited here came back shorter than the one DabMusic wrote.
+
+- `Entry` gained `comment` and `meta` kinds, and `isLine` now names the two line
+  kinds instead of meaning "not blank". Comments and
+  `ar|ti|al|by|re|ve|length|offset` tags are kept in file order and written back
+  unchanged; `[dmll:*]` is still regenerated, since the writer owns the header.
+- `[offset:]` is preserved but not applied, which is what the site does. Keeping
+  it means the file still means the same thing outside this editor.
+- A line with several timestamps still becomes one entry per timestamp, but the
+  copies carry a shared `group` id. The writer puts them back on one line while
+  every copy has the same words at the same offsets; editing any copy's words or
+  times separates them into valid single lines instead of guessing.
+- `mergeLyrics` takes the group from the new text, so re-pasting or editing
+  through the panel keeps the structure.
+- The lyric list shows comments as dim italic rows and hides metadata tags.
+  Neither counts as a line, so numbering, voices and ad-lib parents are
+  unchanged.
 
 ## Resolved decisions
 
@@ -225,7 +244,7 @@ leaves the file present but unused.
 
 ## Verified
 
-- 77 vitest cases: timing, tokenizing, parsing (including the spec's quick
+- 86 vitest cases: timing, tokenizing, parsing (including the spec's quick
   reference, multi-timestamp lines, the duet form, BOM), serializing,
   round-trips, merging, the sync reducer, rate stepping.
 - All 14 real `.lrc` files in DabMusic's `public/music` (564 timestamped lines,
@@ -252,7 +271,11 @@ leaves the file present but unused.
   - album folder, against a stubbed directory handle: the manifest loaded its
     three tracks, opening one loaded its audio and its `.dmll`, saving wrote the
     same file back and updated the manifest, and saving the track that listed
-    `lrc` wrote `<stem>.dmll`, dropped `lrc` and left the old file in place.
+    `lrc` wrote `<stem>.dmll`, dropped `lrc` and left the old file in place;
+  - format fidelity: a file with a comment, an `[ar:]` tag and a repeated
+    timestamp exported byte-for-byte again, the edit panel showed the repeated
+    timestamp once and kept the comment and tag, and applying it unchanged
+    changed nothing.
 - Exported files were read back with a copy of DabMusic's `lrc.ts`: word times,
   gaps after an early `Shift+Space`, `[ad:]` folding into its parent line, voices
   and untimed lines all agree.
@@ -260,14 +283,6 @@ leaves the file present but unused.
 
 ## Remaining
 
-- **The key map is my default, not the owner's.** Space/Shift+Space/Enter and
-  the nudge keys have not been confirmed against how the owner actually works.
-- No `.lrc` export. LRC is import-only, and the output is always DMLL.
-- Repeated timestamps (`[00:12.34][00:20.00] text`) become separate lines on
-  import, so they export as two lines rather than one line with two timestamps.
-- `//` comments in an imported file are dropped, and `[offset:]` is ignored, as
-  on the site. Files with an offset will land shifted by the same amount they do
-  in DabMusic.
 - No hold-to-sing. The layout is desktop-first.
 - The album folder is written directly, but nothing commits or deploys it: the
   owner still has to commit `public/music/<album>/` in DabMusic.

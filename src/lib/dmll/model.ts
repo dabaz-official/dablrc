@@ -2,9 +2,9 @@ import type { AdlibEntry, Entry, LyricEntry, Lyrics, Token, Voice } from "./type
 
 export type LineEntry = LyricEntry | AdlibEntry;
 
-/** Whether an entry is a line, as opposed to a blank row. */
+/** Whether an entry is a line, as opposed to a blank row, a comment or a tag. */
 export function isLine(entry: Entry | undefined): entry is LineEntry {
-  return entry !== undefined && entry.kind !== "blank";
+  return entry?.kind === "lyric" || entry?.kind === "adlib";
 }
 
 /** The text of a line: its tokens joined back together. */

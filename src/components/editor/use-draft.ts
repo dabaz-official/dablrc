@@ -7,7 +7,7 @@ import type { Lyrics } from "@/lib/dmll/types";
 
 /** The old project name is kept here on purpose: changing the key drops every saved draft. */
 const STORAGE_KEY = "dablrc.draft";
-const KINDS = new Set(["lyric", "adlib", "blank"]);
+const KINDS = new Set(["lyric", "adlib", "blank", "comment", "meta"]);
 
 function isLyrics(value: unknown): value is Lyrics {
   return (

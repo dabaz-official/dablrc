@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { mergeLyrics, toPlainText } from "./merge";
 import { parseLyrics } from "./parse";
+import { toLrcText } from "./serialize";
 import { lineAt } from "./test-helpers";
 
 describe("mergeLyrics", () => {
@@ -88,6 +89,21 @@ describe("mergeLyrics", () => {
     const merged = mergeLyrics(previous, parseLyrics("[00:02.00] a"));
 
     expect(lineAt(merged, 0)).toMatchObject({ voice: "right" });
+  });
+
+  it("keeps comments and tags when the text is re-applied unchanged", () => {
+    const previous = parseLyrics("[ar:X]\n// note\n[00:01.00] hello");
+    const merged = mergeLyrics(previous, parseLyrics(toLrcText(previous)));
+
+    expect(merged.map((entry) => entry.kind)).toEqual(["meta", "comment", "lyric"]);
+    expect(lineAt(merged, 2).start).toBe(1);
+  });
+
+  it("takes the grouping of a repeated timestamp from the new text", () => {
+    const previous = parseLyrics("[00:01.00] old words");
+    const merged = mergeLyrics(previous, parseLyrics("[00:01.00][00:05.00] one two"));
+
+    expect(toLrcText(merged)).toBe("[00:01.00][00:05.00] one two");
   });
 });
 

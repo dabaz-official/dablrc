@@ -71,6 +71,33 @@ describe("serializeLyrics", () => {
 
     expect(serializeLyrics(lyrics)).toBe("[dmll:1]\n\n[00:01.00] A\nB\nC\n");
   });
+
+  it("writes a repeated timestamp back as one line", () => {
+    const source = "[dmll:1]\n\n[00:01.00][00:05.00] {00:01.00~00:01.50}one {00:01.50~00:02.00}two\n";
+
+    expect(serializeLyrics(parseLyrics(source))).toBe(source);
+  });
+
+  it("writes the copies on separate lines once one of them is edited", () => {
+    const lyrics = parseLyrics("[00:01.00][00:05.00] {00:01.00~00:01.50}one {00:01.50~00:02.00}two");
+    const second = lineAt(lyrics, 1);
+    const tokens = second.tokens.map((token, index) =>
+      index === 0 ? { ...token, start: (token.start ?? 0) + 0.1 } : token,
+    );
+    const edited: Lyrics = [lineAt(lyrics, 0), { ...second, tokens }];
+
+    expect(serializeLyrics(edited)).toBe(
+      "[dmll:1]\n\n" +
+        "[00:01.00] {00:01.00~00:01.50}one {00:01.50~00:02.00}two\n" +
+        "[00:05.00] {00:05.10~00:05.50}one {00:05.50~00:06.00}two\n",
+    );
+  });
+
+  it("writes comments and metadata tags back where they were", () => {
+    const source = "[dmll:1]\n\n[ar:Playboi Carti]\n// a note\n\n[00:01.00] hello\n";
+
+    expect(serializeLyrics(parseLyrics(source))).toBe(source);
+  });
 });
 
 describe("toLrcText", () => {
@@ -90,5 +117,15 @@ describe("toLrcText", () => {
 
     expect(lineAt(merged, 0)).toMatchObject({ start: 1 });
     expect(lineAt(merged, 1)).toMatchObject({ start: 4 });
+  });
+
+  it("keeps comments and tags in the edit text", () => {
+    const lyrics = parseLyrics("[ar:X]\n// note\n[00:01.00] hello");
+
+    expect(toLrcText(lyrics)).toBe("[ar:X]\n// note\n[00:01.00] hello");
+  });
+
+  it("keeps a repeated timestamp on one line", () => {
+    expect(toLrcText(parseLyrics("[00:01.00][00:05.00] hi"))).toBe("[00:01.00][00:05.00] hi");
   });
 });

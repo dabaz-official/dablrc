@@ -23,6 +23,12 @@ interface LineBase {
 export interface LyricEntry extends LineBase {
   kind: "lyric";
   voice: Voice;
+  /**
+   * Entries that came from one multi-timestamp line share this id, so they can
+   * be written back as `[t1][t2] text`. It is only honoured while the copies
+   * still match.
+   */
+  group?: number;
 }
 
 /** An ad-lib, written under the timed lyric line above it. */
@@ -35,7 +41,19 @@ export interface BlankEntry {
   kind: "blank";
 }
 
-export type Entry = LyricEntry | AdlibEntry | BlankEntry;
+/** A `//` comment, kept so notes in a file survive a round trip. */
+export interface CommentEntry {
+  kind: "comment";
+  text: string;
+}
+
+/** A metadata tag such as `[ar:...]` or `[offset:...]`, kept verbatim. */
+export interface MetaEntry {
+  kind: "meta";
+  text: string;
+}
+
+export type Entry = LyricEntry | AdlibEntry | BlankEntry | CommentEntry | MetaEntry;
 
 /** A lyric file as the editor holds it: its lines in file order. */
 export type Lyrics = Entry[];

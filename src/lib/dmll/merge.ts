@@ -14,7 +14,13 @@ const centi = (seconds: number) => Math.round(seconds * 100);
 
 /** The lyrics as plain text, one line per row, blank rows kept. */
 export function toPlainText(lyrics: Lyrics): string {
-  return lyrics.map((entry) => (entry.kind === "blank" ? "" : plainText(entry.tokens))).join("\n");
+  return lyrics
+    .map((entry) => {
+      if (isLine(entry)) return plainText(entry.tokens);
+      if (entry.kind === "comment" || entry.kind === "meta") return entry.text;
+      return "";
+    })
+    .join("\n");
 }
 
 /** Whether any word of the line carries a time. */
@@ -42,10 +48,18 @@ function shifted(tokens: Token[], delta: number): Token[] {
 function adoptLine(old: LineEntry, next: LineEntry): LineEntry {
   const sameText = plainText(old.tokens) === plainText(next.tokens);
   const start = next.start ?? old.start;
+  const group = next.kind === "lyric" ? next.group : undefined;
 
-  if (hasWordTiming(next)) return { ...old, start, tokens: next.tokens };
-  if (sameText) return { ...old, start, tokens: shifted(old.tokens, start === undefined || old.start === undefined ? 0 : start - old.start) };
-  return { ...old, start, tokens: next.tokens };
+  const tokens = hasWordTiming(next)
+    ? next.tokens
+    : sameText
+      ? shifted(old.tokens, start === undefined || old.start === undefined ? 0 : start - old.start)
+      : next.tokens;
+
+  // The group says how the source repeated the line, so it comes from the new
+  // text even when the line's timing was adopted from the old one.
+  if (old.kind === "lyric" && group !== undefined) return { ...old, start, tokens, group };
+  return { ...old, start, tokens };
 }
 
 /**
