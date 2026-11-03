@@ -20,6 +20,24 @@ export function nextLine(lyrics: Lyrics, from: number): number {
   return -1;
 }
 
+/** Index of the line before `from`, or -1 when there is none. */
+export function previousLine(lyrics: Lyrics, from: number): number {
+  for (let index = from - 1; index >= 0; index--) {
+    if (isLine(lyrics[index])) return index;
+  }
+  return -1;
+}
+
+/** The 1-based number of each lyric line; ad-libs, blanks, comments and tags have none. */
+export function lineNumbers(lyrics: Lyrics): Array<number | undefined> {
+  let count = 0;
+  return lyrics.map((entry) => {
+    if (entry.kind !== "lyric") return undefined;
+    count += 1;
+    return count;
+  });
+}
+
 /** Index of the lyric line above `index`, which an ad-lib belongs to; -1 when there is none. */
 export function parentOf(lyrics: Lyrics, index: number): number {
   for (let above = index - 1; above >= 0; above--) {

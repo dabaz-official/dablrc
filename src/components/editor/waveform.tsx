@@ -8,9 +8,9 @@ import { peaksInRange } from "@/lib/waveform";
 
 import type { WaveformState } from "./use-waveform";
 
-const HEIGHT = 56;
+const DEFAULT_HEIGHT = 56;
 /** The strip at the bottom that holds the line ticks. */
-const TICK_AREA = 8;
+const DEFAULT_TICK_AREA = 8;
 
 interface WaveformProps {
   /** The track's peaks and whether they are ready. */
@@ -23,6 +23,22 @@ interface WaveformProps {
   activeStart?: number;
   /** Seconds in view; `Infinity` shows the whole track. */
   span: number;
+  /** Canvas height in pixels. */
+  height?: number;
+  /** Height of the line-tick strip at the bottom. */
+  tickArea?: number;
+  /** Draw a knob at the playhead, for the focus editor's larger strip. */
+  handle?: boolean;
+  /** Whether the strip itself handles Home/End/arrow keys. */
+  keyboard?: boolean;
+  /** Accessible name of the slider. */
+  label?: string;
+  /** Called as a drag starts, before the first seek. */
+  onScrubStart?: () => void;
+  /** Called when a drag ends, with the time under the pointer. */
+  onScrubEnd?: (time: number) => void;
+  /** Called when the system cancels a drag, so no time is committed. */
+  onScrubCancel?: () => void;
   onSeek: (time: number) => void;
   className?: string;
 }
@@ -49,7 +65,8 @@ function readColors(): Colors {
 /**
  * The track's peaks with the playhead, the timed lines and a click/drag seek.
  * The window follows the playhead, so a zoomed view keeps a word-sized gap
- * visible instead of squeezing four minutes into one screen.
+ * visible instead of squeezing four minutes into one screen. A drag freezes the
+ * window under the pointer, so the time does not shift while it is being set.
  */
 export function Waveform({
   waveform,
@@ -58,6 +75,14 @@ export function Waveform({
   lines,
   activeStart,
   span,
+  height = DEFAULT_HEIGHT,
+  tickArea = DEFAULT_TICK_AREA,
+  handle = false,
+  keyboard = true,
+  label = "Seek",
+  onScrubStart,
+  onScrubEnd,
+  onScrubCancel,
   onSeek,
   className,
 }: WaveformProps) {
@@ -65,6 +90,8 @@ export function Waveform({
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dragging = useRef(false);
+  /** The window as it was when the drag started; also used to map the pointer. */
+  const [frozen, setFrozen] = useState<{ from: number; span: number }>();
   const [width, setWidth] = useState(0);
   /** Bumped when the theme class changes, so the canvas re-reads the tokens. */
   const [theme, setTheme] = useState(0);
@@ -79,8 +106,12 @@ export function Waveform({
 
   const total = Number.isFinite(duration) && duration > 0 ? duration : 0;
   const full = !Number.isFinite(span) || span >= total;
-  const windowSpan = full ? total : Math.min(span, total);
-  const from = full ? 0 : Math.min(Math.max(0, time - windowSpan / 2), Math.max(0, total - windowSpan));
+  const liveSpan = full ? total : Math.min(span, total);
+  const liveFrom = full ? 0 : Math.min(Math.max(0, time - liveSpan / 2), Math.max(0, total - liveSpan));
+
+  // While a drag is live, the window stays where it was when the drag began.
+  const windowSpan = frozen ? frozen.span : liveSpan;
+  const from = frozen ? frozen.from : liveFrom;
   const to = from + windowSpan;
 
   useEffect(() => {
@@ -97,14 +128,14 @@ export function Waveform({
 
     const dpr = window.devicePixelRatio || 1;
     canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(HEIGHT * dpr);
+    canvas.height = Math.round(height * dpr);
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, width, HEIGHT);
+    ctx.clearRect(0, 0, width, height);
 
     const colors = readColors();
-    const area = HEIGHT - TICK_AREA;
+    const area = height - tickArea;
     const playX =
       windowSpan > 0 ? ((Math.min(Math.max(time, from), to) - from) / windowSpan) * width : 0;
 
@@ -132,27 +163,56 @@ export function Waveform({
         if (line < from || line > to) continue;
         const active = activeStart !== undefined && Math.abs(line - activeStart) < 0.005;
         ctx.fillStyle = active ? colors.playhead : colors.tick;
-        ctx.fillRect(Math.round(((line - from) / windowSpan) * width), HEIGHT - TICK_AREA, 1, active ? TICK_AREA : 4);
+        ctx.fillRect(
+          Math.round(((line - from) / windowSpan) * width),
+          height - tickArea,
+          1,
+          active ? tickArea : Math.max(3, tickArea / 2),
+        );
       }
     }
 
     ctx.fillStyle = colors.playhead;
-    ctx.fillRect(Math.round(playX), 0, 1, area);
-  }, [peaks, total, width, time, from, to, windowSpan, lines, activeStart, theme]);
+    ctx.fillRect(Math.round(playX), 0, 2, area);
+    if (handle) {
+      ctx.beginPath();
+      ctx.arc(Math.min(Math.max(playX, 4), width - 4), 5, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }, [peaks, total, width, height, tickArea, handle, time, from, to, windowSpan, lines, activeStart, theme]);
 
-  function seekFrom(clientX: number) {
+  /** The time at `clientX`, using the frozen window while a drag is live. */
+  function timeFrom(clientX: number): number | undefined {
     const wrap = wrapRef.current;
-    if (!wrap || windowSpan <= 0) return;
+    if (!wrap || windowSpan <= 0) return undefined;
     const rect = wrap.getBoundingClientRect();
     const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-    onSeek(from + ratio * windowSpan);
+    return from + ratio * windowSpan;
+  }
+
+  function seekFrom(clientX: number) {
+    const next = timeFrom(clientX);
+    if (next !== undefined) onSeek(next);
   }
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
     if (total <= 0) return;
+    // Freeze the window before the first seek, so the pointer maps to a stable
+    // range for the whole gesture.
+    setFrozen({ from: liveFrom, span: liveSpan });
     dragging.current = true;
     event.currentTarget.setPointerCapture(event.pointerId);
+    onScrubStart?.();
     seekFrom(event.clientX);
+  }
+
+  function finish(clientX: number) {
+    if (!dragging.current) return;
+    const next = timeFrom(clientX);
+    if (next !== undefined) onSeek(next);
+    if (next !== undefined) onScrubEnd?.(next);
+    dragging.current = false;
+    setFrozen(undefined);
   }
 
   return (
@@ -160,7 +220,7 @@ export function Waveform({
       ref={wrapRef}
       role="slider"
       tabIndex={0}
-      aria-label="Seek"
+      aria-label={label}
       aria-valuemin={0}
       aria-valuemax={Math.round(total)}
       aria-valuenow={Math.round(time)}
@@ -170,36 +230,41 @@ export function Waveform({
           ? "The waveform could not be read; click or drag to seek"
           : loading
             ? "Reading the waveform…"
-            : "Click or drag to seek"
+            : onScrubEnd
+              ? "Drag to set the time"
+              : "Click or drag to seek"
       }
       className={cx("cursor-pointer touch-none select-none", className)}
       onPointerDown={onPointerDown}
       onPointerMove={(event) => {
         if (dragging.current) seekFrom(event.clientX);
       }}
-      onPointerUp={(event) => {
-        if (!dragging.current) return;
-        dragging.current = false;
-        seekFrom(event.clientX);
-      }}
+      onPointerUp={(event) => finish(event.clientX)}
       onPointerCancel={() => {
+        // A cancelled gesture (the system took over the pointer) must not commit.
         dragging.current = false;
+        setFrozen(undefined);
+        onScrubCancel?.();
       }}
-      onKeyDown={(event) => {
-        const step = event.shiftKey ? 5 : 1;
-        let next: number;
-        if (event.key === "ArrowLeft") next = time - step;
-        else if (event.key === "ArrowRight") next = time + step;
-        else if (event.key === "Home") next = 0;
-        else if (event.key === "End") next = total;
-        else return;
-        // The editor's global keys also seek with the arrows.
-        event.preventDefault();
-        event.stopPropagation();
-        onSeek(Math.min(total, Math.max(0, next)));
-      }}
+      onKeyDown={
+        keyboard
+          ? (event) => {
+              const step = event.shiftKey ? 5 : 1;
+              let next: number;
+              if (event.key === "ArrowLeft") next = time - step;
+              else if (event.key === "ArrowRight") next = time + step;
+              else if (event.key === "Home") next = 0;
+              else if (event.key === "End") next = total;
+              else return;
+              // The editor's global keys also seek with the arrows.
+              event.preventDefault();
+              event.stopPropagation();
+              onSeek(Math.min(total, Math.max(0, next)));
+            }
+          : undefined
+      }
     >
-      <canvas ref={canvasRef} className="block" style={{ width: "100%", height: HEIGHT }} />
+      <canvas ref={canvasRef} className="block" style={{ width: "100%", height }} />
     </div>
   );
 }

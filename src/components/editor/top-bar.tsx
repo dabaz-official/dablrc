@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, FileAudio, FileUp, FolderOpen } from "lucide-react";
+import { AlignCenter, Download, FileAudio, FileUp, FolderOpen, List } from "lucide-react";
 import Image from "next/image";
 import { useRef, type ChangeEvent } from "react";
 
@@ -10,16 +10,29 @@ import { Button } from "@/components/ui/button";
 const AUDIO_TYPES = "audio/*,.mp3,.m4a,.aac,.wav,.flac,.ogg,.opus";
 const LYRIC_TYPES = ".dmll,.lrc,.txt";
 
+export type EditorView = "focus" | "legacy";
+
 interface TopBarProps {
   audioName?: string;
   canExport: boolean;
+  view: EditorView;
+  onSwitchView: () => void;
   onOpenAudio: (file: File) => void;
   onImport: (file: File) => void;
   onExport: () => void;
   onOpenAlbum: () => void;
 }
 
-export function TopBar({ audioName, canExport, onOpenAudio, onImport, onExport, onOpenAlbum }: TopBarProps) {
+export function TopBar({
+  audioName,
+  canExport,
+  view,
+  onSwitchView,
+  onOpenAudio,
+  onImport,
+  onExport,
+  onOpenAlbum,
+}: TopBarProps) {
   const audioInput = useRef<HTMLInputElement>(null);
   const lyricsInput = useRef<HTMLInputElement>(null);
 
@@ -70,9 +83,19 @@ export function TopBar({ audioName, canExport, onOpenAudio, onImport, onExport, 
           <FileUp className="size-4" />
           <span className="hidden sm:inline">Import</span>
         </Button>
-        <Button size="sm" variant="primary" disabled={!canExport} onClick={onExport}>
+        <Button size="sm" variant="primary" disabled={!canExport} onClick={onExport} aria-label="Export .dmll">
           <Download className="size-4" />
-          Export .dmll
+          <span className="hidden sm:inline">Export .dmll</span>
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          title={view === "focus" ? "Open the legacy list editor" : "Open the single-line focus editor"}
+          aria-label={view === "focus" ? "Open the legacy editor" : "Open the focus editor"}
+          onClick={onSwitchView}
+        >
+          {view === "focus" ? <List className="size-4" /> : <AlignCenter className="size-4" />}
+          <span className="hidden sm:inline">{view === "focus" ? "Legacy" : "Focus"}</span>
         </Button>
         <ThemeToggle />
 
