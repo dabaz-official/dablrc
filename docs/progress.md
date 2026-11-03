@@ -17,6 +17,7 @@ pages, the shadcn components and the LRC-only parser are gone from `master`;
 | #4 | `67f87e5` | `timed-highlight` | Timed words and lines are blue |
 | #5 | `3e30ccd` | `rename-site` | Renamed the site, added `metadataBase` |
 | #6 | `95f36a1` | `word-edit` | Edit a word in place without losing its timing |
+| #7 | `49333b8` | `waveform` | Waveform with a following, zoomable window |
 
 ## Why a rewrite
 
