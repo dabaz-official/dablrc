@@ -225,6 +225,23 @@ form, so a file edited here came back shorter than the one DabMusic wrote.
   Neither counts as a line, so numbering, voices and ad-lib parents are
   unchanged.
 
+### Hold, touch and narrow screens (PR #10)
+
+- `Hold` in the transport turns `Space` into a press-and-release gesture: down
+  starts the word, up ends it, and a window blur ends it too, so a lost focus
+  does not leave a word open. `Shift+Space` still ends the word early.
+- Below `sm`, the transport shows `Tap`, `End word`, `End line` and `Undo`
+  buttons (`src/components/editor/sync-pad.tsx`). `Tap` supports hold the same
+  way. A phone has no keyboard, so without this there was no way to stamp a word
+  at all.
+- A lyric row below `sm` puts the words on their own line with the controls
+  (side, ad-lib, timestamp, clear) beneath them, and the line number moves down
+  with the controls. Targets are 44 px and the clear button is always visible,
+  because a hover-only control cannot be reached with a finger.
+- The key hints are hidden below `sm`, and the footer pads for the iPhone home
+  bar. Word buttons use `touch-action: manipulation`, so a double tap does not
+  zoom while editing.
+
 ## Resolved decisions
 
 - **Word timing belongs to an exact line.** Kept only while the line's text is
@@ -276,7 +293,13 @@ form, so a file edited here came back shorter than the one DabMusic wrote.
   - format fidelity: a file with a comment, an `[ar:]` tag and a repeated
     timestamp exported byte-for-byte again, the edit panel showed the repeated
     timestamp once and kept the comment and tag, and applying it unchanged
-    changed nothing.
+    changed nothing;
+  - hold and narrow screens: `Space` held for 0.8 s while playing produced
+    `00:00.28 to 00:01.08`; the pad's `Tap` left a word open at 1.43 and
+    `End word` closed it; at 390 px a row was 96 px with the words above the
+    controls, all four pad buttons were 44 px, the hints were hidden and the
+    page reserved the footer's measured 219 px; at 1280 px the row was still one
+    32 px line in its original order.
 - Exported files were read back with a copy of DabMusic's `lrc.ts`: word times,
   gaps after an early `Shift+Space`, `[ad:]` folding into its parent line, voices
   and untimed lines all agree.
@@ -284,7 +307,6 @@ form, so a file edited here came back shorter than the one DabMusic wrote.
 
 ## Remaining
 
-- No hold-to-sing. The layout is desktop-first.
 - The album folder is written directly, but nothing commits or deploys it: the
   owner still has to commit `public/music/<album>/` in DabMusic.
 

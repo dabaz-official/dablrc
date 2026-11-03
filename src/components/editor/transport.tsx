@@ -10,6 +10,7 @@ import type { Lyrics } from "@/lib/dmll/types";
 import { PLAYBACK_RATES, type PlaybackRate } from "@/lib/playback";
 
 import { Waveform } from "./waveform";
+import { SyncPad } from "./sync-pad";
 import type { WaveformState } from "./use-waveform";
 
 interface TransportProps {
@@ -23,11 +24,19 @@ interface TransportProps {
   activeStart?: number;
   mode: SyncMode;
   rate: PlaybackRate;
+  /** When on, Space down starts a word and Space up ends it. */
+  hold: boolean;
+  canUndo: boolean;
   onModeChange: (mode: SyncMode) => void;
   onRateChange: (rate: PlaybackRate) => void;
+  onHoldChange: (hold: boolean) => void;
   onTogglePlay: () => void;
   onSkip: (seconds: number) => void;
   onSeek: (time: number) => void;
+  onTap: () => void;
+  onEndWord: () => void;
+  onEndLine: () => void;
+  onUndo: () => void;
   onHeightChange: (height: number) => void;
 }
 
@@ -53,11 +62,18 @@ export function Transport({
   activeStart,
   mode,
   rate,
+  hold,
+  canUndo,
   onModeChange,
   onRateChange,
+  onHoldChange,
   onTogglePlay,
   onSkip,
   onSeek,
+  onTap,
+  onEndWord,
+  onEndLine,
+  onUndo,
   onHeightChange,
 }: TransportProps) {
   const total = Number.isFinite(duration) ? duration : 0;
@@ -82,9 +98,19 @@ export function Transport({
   return (
     <footer
       ref={footerRef}
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
       <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-3">
+        <SyncPad
+          enabled={hasAudio}
+          hold={hold}
+          canUndo={canUndo}
+          onTap={onTap}
+          onEndWord={onEndWord}
+          onEndLine={onEndLine}
+          onUndo={onUndo}
+        />
+
         <div className="flex items-center gap-3">
           <Waveform
             waveform={waveform}
@@ -171,6 +197,19 @@ export function Transport({
             ))}
           </div>
 
+          <button
+            type="button"
+            aria-pressed={hold}
+            title="Hold Space to time a word from press to release"
+            onClick={() => onHoldChange(!hold)}
+            className={cx(
+              "rounded-md border border-border px-2 py-1 text-xs font-medium transition-colors",
+              hold ? "bg-primary text-on-primary" : "text-text-secondary hover:text-text-primary",
+            )}
+          >
+            Hold
+          </button>
+
           <div role="group" aria-label="Playback speed" className="flex rounded-md border border-border p-0.5 text-xs">
             {PLAYBACK_RATES.map((value) => (
               <button
@@ -189,7 +228,7 @@ export function Transport({
             ))}
           </div>
 
-          <p className="w-full text-xs leading-relaxed text-text-tertiary">
+          <p className="hidden w-full text-xs leading-relaxed text-text-tertiary sm:block">
             Space tap · Shift+Space end word · Enter end line · Backspace undo · P play · ←/→ seek · [ ] speed · S / E
             set the selected word&apos;s start / end · , . ; &apos; nudge it (hold Shift for bigger steps) · F2 edits a
             word

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type Dispatch } from "react";
+import { useEffect, useRef, type Dispatch } from "react";
 
 import type { Action, SyncMode } from "@/lib/dmll/sync";
 import { cycleRate, type PlaybackRate } from "@/lib/playback";
@@ -17,6 +17,8 @@ interface SyncKeys {
   dispatch: Dispatch<Action>;
   mode: SyncMode;
   hasAudio: boolean;
+  /** When on, a word runs from Space down to Space up. */
+  hold: boolean;
   rate: PlaybackRate;
   onRateChange: (rate: PlaybackRate) => void;
   currentTime: () => number;
@@ -38,15 +40,27 @@ function releaseFocus() {
 }
 
 /**
+ * The physical key. Some input sources and automation send no `code`; `key`
+ * names the same key on every layout for the keys used here.
+ */
+function codeOf(event: KeyboardEvent): string {
+  if (event.code) return event.code;
+  return event.key === " " ? "Space" : event.key;
+}
+
+/**
  * The sync keys. Space taps the next word, Enter ends the line, Shift+Space ends
  * the word for a pause, and Backspace undoes. The arrows seek; S and E re-stamp
- * the selected word; the punctuation keys nudge it; F2 edits its text. Keys are
- * read by position (`event.code`), so they work on any keyboard layout.
+ * the selected word; the punctuation keys nudge it; F2 edits its text. With
+ * `hold` on, Space down starts the word and Space up ends it, so a sustained
+ * word is one gesture. Keys are read by position (`event.code`), so they work on
+ * any keyboard layout.
  */
 export function useSyncKeys({
   dispatch,
   mode,
   hasAudio,
+  hold,
   rate,
   onRateChange,
   currentTime,
@@ -54,7 +68,17 @@ export function useSyncKeys({
   togglePlay,
   onEditSelected,
 }: SyncKeys) {
+  /** Whether a held Space is still waiting for its release. */
+  const holding = useRef(false);
+
   useEffect(() => {
+    /** Ends the word a held Space started, at the playhead. */
+    function endHold() {
+      if (!holding.current) return;
+      holding.current = false;
+      dispatch({ type: "endWord", time: currentTime() });
+    }
+
     function onKeyDown(event: KeyboardEvent) {
       if (event.altKey || isTypingTarget(event.target)) return;
 
@@ -73,7 +97,7 @@ export function useSyncKeys({
       const nudgeBy = coarse ? COARSE_NUDGE : NUDGE;
       // Some input sources and automation send no `code`; fall back to `key`,
       // which names the same key on every layout for the keys used here.
-      const code = event.code || event.key;
+      const code = codeOf(event);
       let handled = true;
 
       switch (code) {
@@ -81,6 +105,7 @@ export function useSyncKeys({
           // Without audio there is no playhead to tap against, so Space does nothing.
           if (event.repeat || !hasAudio) break;
           releaseFocus();
+          if (hold && !coarse) holding.current = true;
           dispatch(coarse ? { type: "endWord", time } : { type: "tap", time, mode });
           break;
         case "Enter":
@@ -134,7 +159,18 @@ export function useSyncKeys({
       if (handled) event.preventDefault();
     }
 
+    function onKeyUp(event: KeyboardEvent) {
+      if (codeOf(event) !== "Space" || isTypingTarget(event.target)) return;
+      endHold();
+    }
+
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [dispatch, mode, hasAudio, rate, onRateChange, currentTime, seek, togglePlay, onEditSelected]);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", endHold);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", endHold);
+    };
+  }, [dispatch, mode, hasAudio, hold, rate, onRateChange, currentTime, seek, togglePlay, onEditSelected]);
 }

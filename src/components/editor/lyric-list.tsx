@@ -67,7 +67,7 @@ export function LyricList({
   }, [active]);
 
   return (
-    <ol className="mx-auto flex max-w-5xl flex-col gap-0.5 px-4 pb-8">
+    <ol className="mx-auto flex max-w-5xl flex-col gap-1 px-4 pb-8 sm:gap-0.5">
       {lyrics.map((entry, index) => {
         if (entry.kind === "blank") return <li key={index} aria-hidden className="h-5" />;
 
