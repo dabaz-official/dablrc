@@ -48,7 +48,7 @@ on what a file means.
       (the same file and OFL licence as DabMusic); semantic colour tokens
       mirrored from its `globals.css` (light and dark), including the approved
       functional colours and the focus ring.
-- [x] Tests: vitest 5.0.5, which DabMusic does not have. 46 cases in 7 files.
+- [x] Tests: vitest 5.0.5, which DabMusic does not have. 68 cases in 9 files.
 
 ### Format core
 
@@ -84,7 +84,8 @@ One page, `src/app/page.tsx` to `components/editor/lyrics-editor.tsx`, with:
   timestamp (click to seek), per-word spans, clear-timing.
 - Status bar: counts, "Estimate N lines" when line-level timing exists, Undo,
   Edit lyrics, Clear.
-- Transport: play/pause, ±2 s, seek slider, Word/Line mode, speed, key hints.
+- Transport: play/pause, ±2 s, waveform seek (8 s / 20 s / whole track), Word/Line
+  mode, speed, key hints.
 - Drafts persist in `localStorage` under `dablrc.draft`; the audio does not, so
   it has to be opened again after a reload.
 
@@ -154,6 +155,32 @@ typo fix cost a whole line of synced words.
 - Keys are read by `event.code`, with `event.key` as the fallback when a source
   sends no code (automation and some assistive input do not).
 
+### Waveform (PR #7)
+
+Finding a word boundary used to be ear-only: the transport had a time readout and
+a range slider, and a four-minute track across 1000 px puts 1 px at 0.24 s, far
+too coarse for a 100 ms gap.
+
+- `src/lib/waveform.ts` reduces samples to peaks — the loudest absolute sample of
+  each slice, normalised to the track's own maximum, the same shape as DabMusic's
+  `*.waveform.json`. `peaksInRange` groups the stored peaks into the bars a window
+  draws, so zooming costs no extra decoding.
+- `use-waveform.ts` decodes the opened file in a separate `AudioContext` at 8 kHz,
+  mixes to mono and keeps 12,000 peaks. It never touches the `<audio>` element, so
+  playback, time and rate are unaffected, and a failed decode only costs the
+  picture.
+- `waveform.tsx` draws the peaks, the playhead and a tick for every timed line.
+  The window follows the playhead: 8 s by default, 20 s, or the whole track.
+  Click or drag seeks; arrows, Home and End work when it has focus.
+- Colours come from the existing tokens (`text-tertiary` for the unplayed bars,
+  `text-primary` for the played part, `focus` for the playhead and the active
+  line's tick). A class observer redraws after next-themes switches, because the
+  tokens are read from the DOM at draw time.
+- The fixed footer now reports its height, and the page reserves exactly that much
+  space instead of the old fixed `pb-44`, so a taller footer cannot cover a line.
+- Rows that are not singing keep the previous `time` value, so the per-frame
+  playhead update no longer re-renders every row.
+
 ## Resolved decisions
 
 - **Word timing belongs to an exact line.** Kept only while the line's text is
@@ -174,7 +201,7 @@ typo fix cost a whole line of synced words.
 
 ## Verified
 
-- 46 vitest cases: timing, tokenizing, parsing (including the spec's quick
+- 68 vitest cases: timing, tokenizing, parsing (including the spec's quick
   reference, multi-timestamp lines, the duet form, BOM), serializing,
   round-trips, merging, the sync reducer, rate stepping.
 - All 14 real `.lrc` files in DabMusic's `public/music` (564 timestamped lines,
@@ -193,7 +220,11 @@ typo fix cost a whole line of synced words.
     then imported over;
   - slow playback: 2.44 s of wall time advanced the media by 1.12 s at `0.5×`,
     and the tap recorded `00:03.12`, the media time;
-  - highlighting: computed colours match in both modes and both themes.
+  - highlighting: computed colours match in both modes and both themes;
+  - waveform: a 3:08 track decoded to peaks, a click at 25 % of the 8 s window
+    seeked to 2.00 s, `←` moved to 1.00 s, playing advanced to 3.18 s, `All`
+    brought the whole track into view, the played bars drew in `text-primary`,
+    and the bars followed the theme (light `#737373`, dark `#a3a3a3`).
 - Exported files were read back with a copy of DabMusic's `lrc.ts`: word times,
   gaps after an early `Shift+Space`, `[ad:]` folding into its parent line, voices
   and untimed lines all agree.
@@ -209,7 +240,7 @@ typo fix cost a whole line of synced words.
 - `//` comments in an imported file are dropped, and `[offset:]` is ignored, as
   on the site. Files with an offset will land shifted by the same amount they do
   in DabMusic.
-- No waveform, no hold-to-sing. The layout is desktop-first.
+- No hold-to-sing. The layout is desktop-first.
 - The exported file is not written into DabMusic's album folder automatically;
   the owner places it and adds `dmll` to `album.json`.
 

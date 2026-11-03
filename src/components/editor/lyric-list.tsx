@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 
 import type { SyncMode, TokenRef } from "@/lib/dmll/sync";
-import { hasOpenWord } from "@/lib/dmll/model";
+import { hasOpenWord, isLine } from "@/lib/dmll/model";
 import type { Lyrics, Voice } from "@/lib/dmll/types";
 
 import { LyricRow } from "./lyric-row";
@@ -68,10 +68,19 @@ export function LyricList({
 
   return (
     <ol className="mx-auto flex max-w-5xl flex-col gap-0.5 px-4 pb-8">
-      {lyrics.map((entry, index) =>
-        entry.kind === "blank" ? (
-          <li key={index} aria-hidden className="h-5" />
-        ) : (
+      {lyrics.map((entry, index) => {
+        if (entry.kind === "blank") return <li key={index} aria-hidden className="h-5" />;
+
+        // `time` changes on every frame while playing; a row that is not singing
+        // keeps the old value so its memoised render can bail out.
+        const singing =
+          isLine(entry) &&
+          entry.tokens.some(
+            (token) =>
+              token.start !== undefined && token.end !== undefined && time >= token.start && time < token.end,
+          );
+
+        return (
           <LyricRow
             key={index}
             index={index}
@@ -83,7 +92,7 @@ export function LyricList({
             selected={selected?.entry === index ? selected.token : -1}
             endHint={index === active && !hasOpenWord(entry)}
             mode={mode}
-            time={time}
+            time={index === active || singing ? time : -1}
             editing={editing?.entry === index ? editing.token : -1}
             onActivate={onActivate}
             onSelectToken={onSelectToken}
@@ -95,8 +104,8 @@ export function LyricList({
             onToggleAdlib={onToggleAdlib}
             onClearTiming={onClearTiming}
           />
-        ),
-      )}
+        );
+      })}
     </ol>
   );
 }

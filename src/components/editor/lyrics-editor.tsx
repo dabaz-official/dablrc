@@ -17,6 +17,7 @@ import { Transport } from "./transport";
 import { useDraft } from "./use-draft";
 import { usePlayback } from "./use-playback";
 import { useSyncKeys } from "./use-sync-keys";
+import { useWaveform } from "./use-waveform";
 
 const CONFIRM_REPLACE = "Replace the lyrics and their timing?";
 
@@ -35,6 +36,7 @@ export function LyricsEditor() {
   const { lyrics, active, cursor, selected } = history.present;
   const playback = usePlayback();
   const { currentTime, seek, togglePlay, openFile, rate, setRate } = playback;
+  const waveform = useWaveform(playback.file);
 
   const [mode, setMode] = useState<SyncMode>("word");
   const [panelOpen, setPanelOpen] = useState(false);
@@ -43,6 +45,8 @@ export function LyricsEditor() {
   const [lyricsName, setLyricsName] = useState<string>();
   /** The word whose text is being edited in place. */
   const [editing, setEditing] = useState<TokenRef>();
+  /** The measured height of the fixed transport, reserved under the lyric list. */
+  const [transportHeight, setTransportHeight] = useState(176);
 
   const summary = useMemo(() => summarize(lyrics), [lyrics]);
   const voices = useMemo(() => resolveVoices(lyrics), [lyrics]);
@@ -170,7 +174,7 @@ export function LyricsEditor() {
         onExport={exportFile}
       />
 
-      <main className="flex-1 pb-44">
+      <main className="flex-1" style={{ paddingBottom: transportHeight }}>
         {showPanel && (
           <LyricsInput
             value={text}
@@ -220,6 +224,9 @@ export function LyricsEditor() {
         playing={playback.playing}
         time={playback.time}
         duration={playback.duration}
+        waveform={waveform}
+        lyrics={lyrics}
+        activeStart={isLine(lyrics[active]) ? lyrics[active].start : undefined}
         mode={mode}
         rate={rate}
         onModeChange={setMode}
@@ -227,6 +234,7 @@ export function LyricsEditor() {
         onTogglePlay={togglePlay}
         onSkip={skip}
         onSeek={seek}
+        onHeightChange={setTransportHeight}
       />
 
       <audio {...playback.audioProps} />
