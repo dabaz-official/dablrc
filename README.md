@@ -1,4 +1,4 @@
-# DabLRC
+# DabMusic Lyric Language Editor
 
 Create and edit DMLL lyric files for DabMusic. Paste the lyrics, load the track, and tap each word in time with the audio.
 

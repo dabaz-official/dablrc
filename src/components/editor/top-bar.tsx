@@ -35,7 +35,7 @@ export function TopBar({ audioName, canExport, onOpenAudio, onImport, onExport }
         <div className="flex shrink-0 items-center gap-2">
           <Image
             src="/logo/logo-dark.png"
-            alt="DabLRC"
+            alt=""
             width={128}
             height={128}
             priority
@@ -49,7 +49,10 @@ export function TopBar({ audioName, canExport, onOpenAudio, onImport, onExport }
             priority
             className="hidden size-7 dark:block"
           />
-          <span className="text-sm font-semibold text-text-primary">DabLRC</span>
+          {/* The wordmark is long, so it only shows where the bar has room. */}
+          <span className="hidden whitespace-nowrap text-sm font-semibold text-text-primary md:inline">
+            DabMusic Lyric Language Editor
+          </span>
         </div>
 
         <p className="min-w-0 flex-1 truncate px-2 text-sm text-text-tertiary">{audioName ?? "No audio loaded"}</p>

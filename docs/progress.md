@@ -120,6 +120,18 @@ shows an `Enter ↵` hint.
   clear WCAG AA for normal text. The blue is distinct from the focus blue
   `#4c89ef` used for the cursor underline and the selected ring.
 
+### Name and metadata (PR #5)
+
+- The site is **DabMusic Lyric Language Editor**. The tab title is that name,
+  and a page title would read `%s | DabMusic Lyric Language Editor`.
+- The top bar shows the full name only from `md` up; below that the logo alone
+  carries the brand, because the wordmark would crowd out the audio file name.
+  The logo images are decorative, since the wordmark names the site.
+- `metadataBase` is `https://dmll.dabaz.me`, so the Open Graph image resolves to
+  an absolute URL and `next build` no longer warns about it.
+- The draft key is still `dablrc.draft`. Renaming it would throw away every
+  draft already in a browser, so the old name stays there on purpose.
+
 ## Resolved decisions
 
 - **Word timing belongs to an exact line.** Kept only while the line's text is
@@ -175,10 +187,6 @@ shows an `Enter ↵` hint.
   word. The layout is desktop-first.
 - The exported file is not written into DabMusic's album folder automatically;
   the owner places it and adds `dmll` to `album.json`.
-- `next build` warns that `metadataBase` is unset, because the old
-  `opengraph-image.jpg` is still in `src/app/`. It needs a real site URL before
-  that warning goes away.
-- The site name is still DabLRC.
 
 ## Working notes
 
