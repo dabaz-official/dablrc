@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 
 import type { SyncMode, TokenRef } from "@/lib/dmll/sync";
-import { hasOpenWord, isLine } from "@/lib/dmll/model";
+import { hasOpenWord, isLine, lineNumbers } from "@/lib/dmll/model";
 import type { Lyrics, Voice } from "@/lib/dmll/types";
 
 import { LyricRow } from "./lyric-row";
@@ -27,16 +27,6 @@ interface LyricListProps {
   onToggleVoice: (entry: number) => void;
   onToggleAdlib: (entry: number) => void;
   onClearTiming: (entry: number) => void;
-}
-
-/** The number of each lyric line, counting only lyric lines (not ad-libs or blanks). */
-function lineNumbers(lyrics: Lyrics): Array<number | undefined> {
-  let count = 0;
-  return lyrics.map((entry) => {
-    if (entry.kind !== "lyric") return undefined;
-    count += 1;
-    return count;
-  });
 }
 
 export function LyricList({

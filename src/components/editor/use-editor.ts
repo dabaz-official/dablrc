@@ -1,24 +1,17 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useCallback, useMemo, useReducer, useState } from "react";
 
 import { isLine, resolveVoices, summarize } from "@/lib/dmll/model";
 import { mergeLyrics } from "@/lib/dmll/merge";
-import { isTimedSource, parseLyrics } from "@/lib/dmll/parse";
+import { parseLyrics } from "@/lib/dmll/parse";
 import { serializeLyrics, toLrcText } from "@/lib/dmll/serialize";
 import { EMPTY_HISTORY, historyReducer, type SyncMode, type TokenRef } from "@/lib/dmll/sync";
 import type { Lyrics } from "@/lib/dmll/types";
 
-import { AlbumBar } from "./album-bar";
-import { LyricList } from "./lyric-list";
-import { LyricsInput } from "./lyrics-input";
-import { SummaryBar } from "./summary-bar";
-import { TopBar } from "./top-bar";
-import { Transport } from "./transport";
 import { useAlbum } from "./use-album";
 import { useDraft } from "./use-draft";
 import { usePlayback } from "./use-playback";
-import { useSyncKeys } from "./use-sync-keys";
 import { useWaveform } from "./use-waveform";
 
 const CONFIRM_REPLACE = "Replace the lyrics and their timing?";
@@ -33,11 +26,16 @@ function hasToken(lyrics: Lyrics, ref: TokenRef | undefined): ref is TokenRef {
   return isLine(entry) && ref.token < entry.tokens.length;
 }
 
-export function LyricsEditor() {
+/**
+ * Everything both editors share: the lyrics and their undo history, the audio,
+ * its waveform, the album folder, the draft, and the actions on all of them.
+ * The views only decide how to present it.
+ */
+export function useEditor() {
   const [history, dispatch] = useReducer(historyReducer, EMPTY_HISTORY);
   const { lyrics, active, cursor, selected } = history.present;
   const playback = usePlayback();
-  const { currentTime, seek, togglePlay, openFile, rate, setRate } = playback;
+  const { currentTime, seek, openFile } = playback;
   const waveform = useWaveform(playback.file);
   const album = useAlbum();
 
@@ -49,8 +47,6 @@ export function LyricsEditor() {
   const [lyricsName, setLyricsName] = useState<string>();
   /** The word whose text is being edited in place. */
   const [editing, setEditing] = useState<TokenRef>();
-  /** The measured height of the fixed transport, reserved under the lyric list. */
-  const [transportHeight, setTransportHeight] = useState(176);
 
   const summary = useMemo(() => summarize(lyrics), [lyrics]);
   const voices = useMemo(() => resolveVoices(lyrics), [lyrics]);
@@ -64,33 +60,10 @@ export function LyricsEditor() {
     dispatch({ type: "setTokenText", ref, text });
     setEditing(undefined);
   }, []);
-  // The key handler reads the selection that was just made, not the one it was
-  // created with, so F2 works on the very first key press after a click.
-  const selectionRef = useRef(selected);
-  useLayoutEffect(() => {
-    selectionRef.current = selected;
-  }, [selected]);
-
-  const editSelected = useCallback(() => {
-    if (selectionRef.current) setEditing(selectionRef.current);
-  }, []);
 
   // Undo, an import or a cleared line can remove the word being edited, so the
   // row to edit is taken from what the lyrics still hold.
   const edited = hasToken(lyrics, editing) ? editing : undefined;
-
-  useSyncKeys({
-    dispatch,
-    mode,
-    hasAudio: playback.hasAudio,
-    hold,
-    rate,
-    onRateChange: setRate,
-    currentTime,
-    seek,
-    togglePlay,
-    onEditSelected: editSelected,
-  });
 
   // The paste panel is open whenever there is nothing to sync yet.
   const showPanel = panelOpen || lyrics.length === 0;
@@ -193,101 +166,65 @@ export function LyricsEditor() {
   const skip = useCallback((seconds: number) => seek(currentTime() + seconds), [currentTime, seek]);
 
   // The on-screen pad taps at the playhead, like the Space key does.
-  const padTap = useCallback(() => {
+  const tap = useCallback(() => {
     dispatch({ type: "tap", time: currentTime(), mode });
   }, [currentTime, mode]);
-  const padEndWord = useCallback(() => {
+  const endWord = useCallback(() => {
     dispatch({ type: "endWord", time: currentTime() });
   }, [currentTime]);
-  const padEndLine = useCallback(() => {
+  const closeLine = useCallback(() => {
     dispatch({ type: "closeLine", time: currentTime() });
   }, [currentTime]);
-  const padUndo = useCallback(() => dispatch({ type: "undo" }), []);
 
-  return (
-    <div className="flex min-h-dvh flex-col">
-      <TopBar
-        audioName={audioName}
-        canExport={lyrics.length > 0}
-        onOpenAudio={openAudio}
-        onImport={importFile}
-        onExport={exportFile}
-        onOpenAlbum={album.connect}
-      />
-
-      <AlbumBar album={album} canSave={canSaveToAlbum} onOpen={openAlbumTrack} onSave={saveToAlbum} />
-
-      <main className="flex-1" style={{ paddingBottom: transportHeight }}>
-        {showPanel && (
-          <LyricsInput
-            value={text}
-            timed={isTimedSource(text)}
-            canCancel={lyrics.length > 0}
-            onChange={setText}
-            onApply={applyText}
-            onCancel={() => setPanelOpen(false)}
-          />
-        )}
-
-        {lyrics.length > 0 && (
-          <SummaryBar
-            summary={summary}
-            hasAudio={playback.hasAudio}
-            canUndo={history.past.length > 0}
-            onEdit={editLyrics}
-            onEstimate={estimate}
-            onUndo={undo}
-            onClear={clearAll}
-          />
-        )}
-
-        <LyricList
-          lyrics={lyrics}
-          voices={voices}
-          active={active}
-          cursor={cursor}
-          selected={selected}
-          mode={mode}
-          time={playback.time}
-          editing={edited}
-          onActivate={activate}
-          onSelectToken={selectToken}
-          onEditToken={editToken}
-          onCommitToken={commitToken}
-          onCancelEdit={cancelEdit}
-          onSeek={seek}
-          onToggleVoice={toggleVoice}
-          onToggleAdlib={toggleAdlib}
-          onClearTiming={clearTiming}
-        />
-      </main>
-
-      <Transport
-        hasAudio={playback.hasAudio}
-        playing={playback.playing}
-        time={playback.time}
-        duration={playback.duration}
-        waveform={waveform}
-        lyrics={lyrics}
-        activeStart={isLine(lyrics[active]) ? lyrics[active].start : undefined}
-        mode={mode}
-        rate={rate}
-        hold={hold}
-        canUndo={history.past.length > 0}
-        onModeChange={setMode}
-        onRateChange={setRate}
-        onHoldChange={setHold}
-        onTogglePlay={togglePlay}
-        onSkip={skip}
-        onSeek={seek}
-        onTap={padTap}
-        onEndWord={padEndWord}
-        onEndLine={padEndLine}
-        onUndo={padUndo}
-        onHeightChange={setTransportHeight}
-      />
-
-      <audio {...playback.audioProps} />
-    </div>
-  );
+  return {
+    history,
+    dispatch,
+    lyrics,
+    active,
+    cursor,
+    selected,
+    summary,
+    voices,
+    playback,
+    waveform,
+    album,
+    mode,
+    setMode,
+    hold,
+    setHold,
+    panelOpen,
+    setPanelOpen,
+    text,
+    setText,
+    audioName,
+    lyricsName,
+    editing: edited,
+    showPanel,
+    openAudio,
+    openAlbumTrack,
+    saveToAlbum,
+    canSaveToAlbum,
+    importFile,
+    applyText,
+    editLyrics,
+    exportFile,
+    clearAll,
+    undo,
+    estimate,
+    toggleVoice,
+    toggleAdlib,
+    clearTiming,
+    activate,
+    selectToken,
+    skip,
+    tap,
+    endWord,
+    closeLine,
+    editToken,
+    cancelEdit,
+    commitToken,
+    canUndo: history.past.length > 0,
+  };
 }
+
+export type EditorController = ReturnType<typeof useEditor>;

@@ -5,13 +5,12 @@ import { useEffect, useRef, type Dispatch } from "react";
 import type { Action, SyncMode } from "@/lib/dmll/sync";
 import { cycleRate, type PlaybackRate } from "@/lib/playback";
 
+import { codeOf, isTypingTarget, releaseFocus } from "./keyboard";
+
 const SEEK_STEP = 2;
 const COARSE_SEEK_STEP = 10;
 const NUDGE = 0.01;
 const COARSE_NUDGE = 0.1;
-
-/** Input types where typing does not happen, so the editor keys still apply. */
-const NON_TEXT_INPUTS = new Set(["checkbox", "radio", "range", "button", "submit", "reset", "file", "color"]);
 
 interface SyncKeys {
   dispatch: Dispatch<Action>;
@@ -26,26 +25,6 @@ interface SyncKeys {
   togglePlay: () => void;
   /** Opens the inline editor for the selected word. */
   onEditSelected: () => void;
-}
-
-function isTypingTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  if (target.isContentEditable || target instanceof HTMLTextAreaElement) return true;
-  return target instanceof HTMLInputElement && !NON_TEXT_INPUTS.has(target.type);
-}
-
-/** Takes focus off a button, so Space and Enter are not also clicks. */
-function releaseFocus() {
-  if (document.activeElement instanceof HTMLButtonElement) document.activeElement.blur();
-}
-
-/**
- * The physical key. Some input sources and automation send no `code`; `key`
- * names the same key on every layout for the keys used here.
- */
-function codeOf(event: KeyboardEvent): string {
-  if (event.code) return event.code;
-  return event.key === " " ? "Space" : event.key;
 }
 
 /**

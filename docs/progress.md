@@ -52,7 +52,7 @@ on what a file means.
       (the same file and OFL licence as DabMusic); semantic colour tokens
       mirrored from its `globals.css` (light and dark), including the approved
       functional colours and the focus ring.
-- [x] Tests: vitest 5.0.5, which DabMusic does not have. 86 cases in 10 files.
+- [x] Tests: vitest 5.0.5, which DabMusic does not have. 88 cases in 11 files.
 
 ### Format core
 
@@ -78,7 +78,8 @@ Pure TypeScript in `src/lib/dmll/`, no React:
 
 ### Editor
 
-One page, `src/app/page.tsx` to `components/editor/lyrics-editor.tsx`, with:
+One page, `src/app/page.tsx` to `components/editor/lyrics-editor.tsx`
+(now `legacy-editor.tsx`; Focus is the default since PR #11), with:
 
 - Top bar: audio, import, export, theme. Import accepts `.dmll`, `.lrc`, `.txt`;
   export writes `.dmll` named after the imported file or the audio.
@@ -243,6 +244,48 @@ form, so a file edited here came back shorter than the one DabMusic wrote.
   bar. Word buttons use `touch-action: manipulation`, so a double tap does not
   zoom while editing.
 
+### Single-line focus editor (PR #11)
+
+The list editor is precise but, on a phone, syncing a line means moving the eyes
+between the list, the transport and the waveform. The Focus view shows one line
+centred on a large stage with a tall waveform underneath, so the line, the
+marker and the audio are in one place.
+
+- `src/components/editor/use-editor.ts` now owns the shared session: the sync
+  history, playback, waveform, album folder, draft, mode and every action. The
+  shell (`editor-shell.tsx`) renders the top bar, album bar, the selected view
+  and the single `<audio>` element, so switching views keeps the track loaded,
+  the playhead and the undo history.
+- The top bar has a `Focus` / `Legacy` switch. `?view=legacy` opens the list
+  editor directly; the switch updates the query with `replaceState`, without a
+  navigation. Focus is the default.
+- `focus-editor.tsx` shows only the active line (`focus-line.tsx`): 24 px on
+  phones and 32/40 px above `sm`, with the line number, a timed-word blue and a
+  pale wash on the word being sung. In word mode the words are buttons, so a
+  word can be picked and re-timed; in line mode the whole line is coloured.
+- The waveform is 112 px tall with a 12 px tick strip and a knob at the marker.
+  Pointer drag and click seek live and freeze the 8 s window for the gesture;
+  the `8s` / `20s` / `All` buttons set the span. Letting go commits at the
+  pointer time. The former list waveform keeps its 56 px defaults.
+- Committing reuses the existing reducer: line mode uses `tap`, word mode uses
+  `tap` (ending the previous word and starting the picked one), and the commit
+  after the last word uses `closeLine`. A drag or an Enter is one undo step.
+  The focus index is the first word without a start; when every word has one,
+  the next commit ends the line. A fully timed line opens at its end, where the
+  primary button is `Next line`; clicking a word re-times it.
+- Desktop keys are the drag equivalent: `←` / `→` nudge the marker by 10 ms
+  (Shift 100 ms) and seek with it, `Enter` commits and advances, `Space` plays,
+  `↑` / `↓` change line, `Backspace` / `Cmd+Z` undoes and `[` / `]` change the
+  speed. The legacy key map is untouched. A drag pauses playback; the `Sync`
+  button while playing does not, so it can be tapped along with the song.
+- Opening a track seeds the playhead at the active line's timestamp instead of
+  0, so an existing timed line starts in view. Switching views does not move it.
+- Mobile targets are 44 px: the icon buttons, the mode and speed pills, the
+  span pills and the words themselves. The dock uses the safe-area inset and
+  the page has no horizontal overflow at 390 px.
+- No parser, serializer, merge or format change. Both views produce the same
+  DMLL; the draft key is still `dablrc.draft`.
+
 ## Resolved decisions
 
 - **Word timing belongs to an exact line.** Kept only while the line's text is
@@ -263,7 +306,7 @@ form, so a file edited here came back shorter than the one DabMusic wrote.
 
 ## Verified
 
-- 86 vitest cases: timing, tokenizing, parsing (including the spec's quick
+- 88 vitest cases: timing, tokenizing, parsing (including the spec's quick
   reference, multi-timestamp lines, the duet form, BOM), serializing,
   round-trips, merging, the sync reducer, rate stepping.
 - All 14 real `.lrc` files in DabMusic's `public/music` (564 timestamped lines,
@@ -300,7 +343,23 @@ form, so a file edited here came back shorter than the one DabMusic wrote.
     `End word` closed it; at 390 px a row was 96 px with the words above the
     controls, all four pad buttons were 44 px, the hints were hidden and the
     page reserved the footer's measured 219 px; at 1280 px the row was still one
-    32 px line in its original order.
+    32 px line in its original order;
+  - focus editor: a drag from 30 % to 45 % of the 8 s window set `alpha` at
+    `00:03.60` and advanced to `beta`; two more drags set `beta` at `00:04.00`
+    and `gamma` at `00:04.80`, and the fourth ended the line at `00:06.40` and
+    moved to line 2. On line 2, `←` added 10 ms (`00:06.41`), `Shift+→` added
+    100 ms, and Enter committed each word; `Backspace` restored the open last
+    word and Enter closed the line again. Line mode set line 3 at `00:08.00` and
+    reached the 3-of-3 completion state. `Sync` while playing wrote `zeta` at
+    `00:08.43` and left the audio playing; a word-mode drag at 390 px set
+    `zeta` 08.00–08.80 and `eta` 08.80–09.60, with no horizontal overflow and
+    every control at 44 px. Switching to Legacy and back kept the same blob
+    source and `08.00` playhead; `?view=legacy` opened the list directly;
+    `F2` and `Edit lyrics` still work there. With a track open, the playhead
+    seeded to the active line's `03.60`. Both themes render, and the export read
+    back as
+    `[00:03.60] {00:03.60~00:04.00}alpha {00:04.00~00:04.80}beta {00:04.80~00:06.40}gamma`
+    plus the matching `delta` and `zeta` lines.
 - Exported files were read back with a copy of DabMusic's `lrc.ts`: word times,
   gaps after an early `Shift+Space`, `[ad:]` folding into its parent line, voices
   and untimed lines all agree.
