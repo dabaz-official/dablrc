@@ -61,7 +61,7 @@ function tokenClass(token: Token, mode: SyncMode, time: number, isCursor: boolea
   const singing = token.start !== undefined && token.end !== undefined && time >= token.start && time < token.end;
 
   return cx(
-    "select-none whitespace-pre rounded-xs transition-colors",
+    "select-none whitespace-pre rounded-xs py-0.5 transition-colors touch-manipulation sm:py-0",
     mode === "word" && (timed ? "text-timed" : "text-text-tertiary"),
     mode === "word" && (open || singing) && "bg-timed-subtle",
     isCursor && "underline decoration-focus decoration-2 underline-offset-4",
@@ -127,21 +127,26 @@ export const LyricRow = memo(function LyricRow({
       id={`line-${index}`}
       onClick={() => onActivate(index, start)}
       className={cx(
-        "group flex cursor-default items-start gap-2 rounded-md px-2 py-0.5",
+        "group flex cursor-default flex-wrap items-start gap-x-2 gap-y-2 rounded-md px-2 py-1.5 sm:flex-nowrap sm:gap-2 sm:py-0.5",
         isActive ? "bg-surface-secondary" : "hover:bg-surface-secondary/60",
       )}
     >
-      <span className="flex h-7 w-6 shrink-0 items-center justify-end font-mono text-xs tabular-nums text-text-tertiary">
+      <span className="hidden h-7 w-6 shrink-0 items-center justify-end font-mono text-xs tabular-nums text-text-tertiary sm:flex">
         {isAdlib ? "↳" : number}
       </span>
 
-      {isAdlib && <span aria-hidden="true" className="size-7 shrink-0" />}
+      {isAdlib && <span aria-hidden="true" className="hidden size-7 shrink-0 sm:block" />}
+
+      {/* Below `sm` the number moves to the controls line, under the text. */}
+      <span className="w-6 shrink-0 text-right font-mono text-xs tabular-nums text-text-tertiary sm:hidden">
+        {isAdlib ? "↳" : number}
+      </span>
 
       {!isAdlib && (
         <Button
           size="icon-sm"
           variant="ghost"
-          className="font-mono text-xs"
+          className="size-11 font-mono text-xs sm:size-7"
           title={`Side: ${voice}. Click to switch.`}
           onClick={(event) => {
             stop(event);
@@ -155,7 +160,7 @@ export const LyricRow = memo(function LyricRow({
       <Button
         size="sm"
         variant="ghost"
-        className="w-16 text-xs text-text-tertiary"
+        className="h-11 w-20 text-xs text-text-tertiary sm:h-7 sm:w-16"
         title={isAdlib ? "Turn into a lyric line" : "Turn into an ad-lib under the line above"}
         onClick={(event) => {
           stop(event);
@@ -174,14 +179,14 @@ export const LyricRow = memo(function LyricRow({
           stop(event);
           if (start !== undefined) onSeek(start);
         }}
-        className="flex h-7 w-20 shrink-0 items-center text-left font-mono text-xs tabular-nums text-text-secondary hover:text-text-primary disabled:text-text-tertiary"
+        className="flex h-11 w-20 shrink-0 items-center text-left font-mono text-xs tabular-nums text-text-secondary hover:text-text-primary disabled:text-text-tertiary sm:h-7"
       >
         {start === undefined ? "--:--.--" : formatTime(start)}
       </button>
 
       <p
         className={cx(
-          "min-w-0 flex-1 leading-7",
+          "order-first min-w-0 basis-full leading-7 sm:order-none sm:flex-1 sm:basis-auto",
           right && "text-right",
           isAdlib ? "pl-4 text-sm" : "text-base",
           mode === "line" && (start !== undefined ? "text-timed" : "text-text-tertiary"),
@@ -244,7 +249,7 @@ export const LyricRow = memo(function LyricRow({
           size="icon-sm"
           variant="ghost"
           title="Clear timing"
-          className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+          className="size-11 opacity-100 focus-visible:opacity-100 sm:size-7 sm:opacity-0 sm:group-hover:opacity-100"
           onClick={(event) => {
             stop(event);
             onClearTiming(index);

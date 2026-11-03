@@ -42,6 +42,7 @@ export function LyricsEditor() {
   const album = useAlbum();
 
   const [mode, setMode] = useState<SyncMode>("word");
+  const [hold, setHold] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [text, setText] = useState("");
   const [audioName, setAudioName] = useState<string>();
@@ -82,6 +83,7 @@ export function LyricsEditor() {
     dispatch,
     mode,
     hasAudio: playback.hasAudio,
+    hold,
     rate,
     onRateChange: setRate,
     currentTime,
@@ -190,6 +192,18 @@ export function LyricsEditor() {
 
   const skip = useCallback((seconds: number) => seek(currentTime() + seconds), [currentTime, seek]);
 
+  // The on-screen pad taps at the playhead, like the Space key does.
+  const padTap = useCallback(() => {
+    dispatch({ type: "tap", time: currentTime(), mode });
+  }, [currentTime, mode]);
+  const padEndWord = useCallback(() => {
+    dispatch({ type: "endWord", time: currentTime() });
+  }, [currentTime]);
+  const padEndLine = useCallback(() => {
+    dispatch({ type: "closeLine", time: currentTime() });
+  }, [currentTime]);
+  const padUndo = useCallback(() => dispatch({ type: "undo" }), []);
+
   return (
     <div className="flex min-h-dvh flex-col">
       <TopBar
@@ -258,11 +272,18 @@ export function LyricsEditor() {
         activeStart={isLine(lyrics[active]) ? lyrics[active].start : undefined}
         mode={mode}
         rate={rate}
+        hold={hold}
+        canUndo={history.past.length > 0}
         onModeChange={setMode}
         onRateChange={setRate}
+        onHoldChange={setHold}
         onTogglePlay={togglePlay}
         onSkip={skip}
         onSeek={seek}
+        onTap={padTap}
+        onEndWord={padEndWord}
+        onEndLine={padEndLine}
+        onUndo={padUndo}
         onHeightChange={setTransportHeight}
       />
 

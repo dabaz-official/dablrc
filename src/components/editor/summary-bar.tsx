@@ -18,7 +18,9 @@ export function SummaryBar({ summary, hasAudio, canUndo, onEdit, onEstimate, onU
 
   return (
     <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-sm text-text-secondary">
-      <span>{summary.lyrics} lines</span>
+      <span>
+        {summary.lyrics} line{summary.lyrics === 1 ? "" : "s"}
+      </span>
       {summary.adlibs > 0 && (
         <span>
           {summary.adlibs} ad-lib{summary.adlibs === 1 ? "" : "s"}
@@ -32,7 +34,7 @@ export function SummaryBar({ summary, hasAudio, canUndo, onEdit, onEstimate, onU
         </span>
       ))}
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
         {summary.lineOnly > 0 && (
           <Button size="sm" onClick={onEstimate} title="Spread each timed line's words across its span">
             Estimate {summary.lineOnly} lines
