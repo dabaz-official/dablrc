@@ -9,6 +9,8 @@ export function usePlayback() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const urlRef = useRef<string | undefined>(undefined);
   const [src, setSrc] = useState<string>();
+  /** The opened file, kept so the waveform can decode it on its own. */
+  const [file, setFile] = useState<File>();
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -45,6 +47,7 @@ export function usePlayback() {
   const openFile = useCallback((file: File) => {
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     urlRef.current = URL.createObjectURL(file);
+    setFile(file);
     setSrc(urlRef.current);
     setTime(0);
     setDuration(0);
@@ -76,6 +79,7 @@ export function usePlayback() {
 
   return {
     hasAudio: src !== undefined,
+    file,
     time,
     duration,
     playing,
@@ -90,6 +94,7 @@ export function usePlayback() {
       src,
       preload: "auto" as const,
       onLoadedMetadata: (event: SyntheticEvent<HTMLAudioElement>) => setDuration(event.currentTarget.duration),
+      onDurationChange: (event: SyntheticEvent<HTMLAudioElement>) => setDuration(event.currentTarget.duration),
       onTimeUpdate: (event: SyntheticEvent<HTMLAudioElement>) => setTime(event.currentTarget.currentTime),
       onPlay: () => setPlaying(true),
       onPause: (event: SyntheticEvent<HTMLAudioElement>) => {
