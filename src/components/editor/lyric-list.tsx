@@ -71,14 +71,21 @@ export function LyricList({
       {lyrics.map((entry, index) => {
         if (entry.kind === "blank") return <li key={index} aria-hidden className="h-5" />;
 
+        // Comments are part of the file, so they are shown; tags are not.
+        if (entry.kind === "comment") {
+          return (
+            <li key={index} className="select-none px-2 py-0.5 text-xs italic text-text-tertiary">
+              {entry.text}
+            </li>
+          );
+        }
+        if (!isLine(entry)) return null;
+
         // `time` changes on every frame while playing; a row that is not singing
         // keeps the old value so its memoised render can bail out.
-        const singing =
-          isLine(entry) &&
-          entry.tokens.some(
-            (token) =>
-              token.start !== undefined && token.end !== undefined && time >= token.start && time < token.end,
-          );
+        const singing = entry.tokens.some(
+          (token) => token.start !== undefined && token.end !== undefined && time >= token.start && time < token.end,
+        );
 
         return (
           <LyricRow
