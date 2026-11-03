@@ -19,6 +19,7 @@ pages, the shadcn components and the LRC-only parser are gone from `master`;
 | #6 | `95f36a1` | `word-edit` | Edit a word in place without losing its timing |
 | #7 | `49333b8` | `waveform` | Waveform with a following, zoomable window |
 | #8 | `6da0176` | `album-folder` | Open an album folder and write the lyric file back |
+| #9 | `aa8854f` | `format-fidelity` | Keep comments, tags and repeated timestamps |
 
 ## Why a rewrite
 
