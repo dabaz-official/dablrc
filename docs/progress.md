@@ -18,6 +18,7 @@ pages, the shadcn components and the LRC-only parser are gone from `master`;
 | #5 | `3e30ccd` | `rename-site` | Renamed the site, added `metadataBase` |
 | #6 | `95f36a1` | `word-edit` | Edit a word in place without losing its timing |
 | #7 | `49333b8` | `waveform` | Waveform with a following, zoomable window |
+| #8 | `6da0176` | `album-folder` | Open an album folder and write the lyric file back |
 
 ## Why a rewrite
 
