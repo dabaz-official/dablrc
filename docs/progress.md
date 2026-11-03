@@ -5,8 +5,8 @@ It is now a DMLL editor for DabMusic: paste the lyrics (plain, LRC or DMLL),
 open the track, tap each word, and export the `.dmll` that sits next to the
 audio in `public/music/<album>/`.
 
-Four PRs are squash-merged into `master`. Every remote branch was kept. The old
-pages, the shadcn components and the LRC-only parser are gone from `master`;
+The PRs below are squash-merged into `master`. Every remote branch was kept. The
+old pages, the shadcn components and the LRC-only parser are gone from `master`;
 `git show 99beb77` still has them.
 
 | PR | Commit | Branch | What landed |
@@ -21,6 +21,7 @@ pages, the shadcn components and the LRC-only parser are gone from `master`;
 | #8 | `6da0176` | `album-folder` | Open an album folder and write the lyric file back |
 | #9 | `aa8854f` | `format-fidelity` | Keep comments, tags and repeated timestamps |
 | #10 | `9d8a0ea` | `hold-touch` | Hold-to-sing, touch pad and narrow-screen rows |
+| #11 | `716e86e` | `focus-editor` | The single-line Focus editor, with Legacy kept |
 
 ## Why a rewrite
 
