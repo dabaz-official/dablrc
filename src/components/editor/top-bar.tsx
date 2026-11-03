@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, FileAudio, FileUp } from "lucide-react";
+import { Download, FileAudio, FileUp, FolderOpen } from "lucide-react";
 import Image from "next/image";
 import { useRef, type ChangeEvent } from "react";
 
@@ -16,9 +16,10 @@ interface TopBarProps {
   onOpenAudio: (file: File) => void;
   onImport: (file: File) => void;
   onExport: () => void;
+  onOpenAlbum: () => void;
 }
 
-export function TopBar({ audioName, canExport, onOpenAudio, onImport, onExport }: TopBarProps) {
+export function TopBar({ audioName, canExport, onOpenAudio, onImport, onExport, onOpenAlbum }: TopBarProps) {
   const audioInput = useRef<HTMLInputElement>(null);
   const lyricsInput = useRef<HTMLInputElement>(null);
 
@@ -57,6 +58,10 @@ export function TopBar({ audioName, canExport, onOpenAudio, onImport, onExport }
 
         <p className="min-w-0 flex-1 truncate px-2 text-sm text-text-tertiary">{audioName ?? "No audio loaded"}</p>
 
+        <Button size="sm" variant="ghost" title="Open a DabMusic album folder" onClick={onOpenAlbum}>
+          <FolderOpen className="size-4" />
+          <span className="hidden sm:inline">Album</span>
+        </Button>
         <Button size="sm" variant="ghost" onClick={() => audioInput.current?.click()}>
           <FileAudio className="size-4" />
           <span className="hidden sm:inline">Audio</span>

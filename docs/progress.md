@@ -49,7 +49,7 @@ on what a file means.
       (the same file and OFL licence as DabMusic); semantic colour tokens
       mirrored from its `globals.css` (light and dark), including the approved
       functional colours and the focus ring.
-- [x] Tests: vitest 5.0.5, which DabMusic does not have. 68 cases in 9 files.
+- [x] Tests: vitest 5.0.5, which DabMusic does not have. 77 cases in 10 files.
 
 ### Format core
 
@@ -182,6 +182,28 @@ too coarse for a 100 ms gap.
 - Rows that are not singing keep the previous `time` value, so the per-frame
   playhead update no longer re-renders every row.
 
+### Album folder (PR #8)
+
+The last manual step was moving the exported file into `public/music/<album>/`
+and adding `dmll` to `album.json`. A wrong name, or a forgotten manifest edit,
+leaves the file present but unused.
+
+- `src/lib/album.ts` reads the manifest (only `tracks[].file` is required), finds
+  a track, picks the lyric file it already names (`dmll` before `lrc`), and
+  writes the manifest back with the line endings and trailing newline it had.
+- `Save to album` writes `<audio stem>.dmll` (or the name the track already
+  lists) and sets `dmll` on the track. A track that listed `lrc` has that key
+  dropped, because the site refuses a track with both; the old `.lrc` file is
+  left on disk, unlisted and harmless.
+- `use-album.ts` uses `showDirectoryPicker` and keeps the handle in IndexedDB, so
+  a later visit either reopens the folder directly, when the browser still
+  grants it, or offers one click to re-allow it.
+- The album bar shows the album's title, its tracks and which one is being
+  edited. `Save` is enabled only while the open audio is the selected track, so
+  a save cannot land on the wrong file.
+- Chrome and Edge on desktop only. Without the API the button says so, and the
+  manual export/import path still works.
+
 ## Resolved decisions
 
 - **Word timing belongs to an exact line.** Kept only while the line's text is
@@ -202,7 +224,7 @@ too coarse for a 100 ms gap.
 
 ## Verified
 
-- 68 vitest cases: timing, tokenizing, parsing (including the spec's quick
+- 77 vitest cases: timing, tokenizing, parsing (including the spec's quick
   reference, multi-timestamp lines, the duet form, BOM), serializing,
   round-trips, merging, the sync reducer, rate stepping.
 - All 14 real `.lrc` files in DabMusic's `public/music` (564 timestamped lines,
@@ -225,7 +247,11 @@ too coarse for a 100 ms gap.
   - waveform: a 3:08 track decoded to peaks, a click at 25 % of the 8 s window
     seeked to 2.00 s, `←` moved to 1.00 s, playing advanced to 3.18 s, `All`
     brought the whole track into view, the played bars drew in `text-primary`,
-    and the bars followed the theme (light `#737373`, dark `#a3a3a3`).
+    and the bars followed the theme (light `#737373`, dark `#a3a3a3`);
+  - album folder, against a stubbed directory handle: the manifest loaded its
+    three tracks, opening one loaded its audio and its `.dmll`, saving wrote the
+    same file back and updated the manifest, and saving the track that listed
+    `lrc` wrote `<stem>.dmll`, dropped `lrc` and left the old file in place.
 - Exported files were read back with a copy of DabMusic's `lrc.ts`: word times,
   gaps after an early `Shift+Space`, `[ad:]` folding into its parent line, voices
   and untimed lines all agree.
@@ -242,8 +268,8 @@ too coarse for a 100 ms gap.
   on the site. Files with an offset will land shifted by the same amount they do
   in DabMusic.
 - No hold-to-sing. The layout is desktop-first.
-- The exported file is not written into DabMusic's album folder automatically;
-  the owner places it and adds `dmll` to `album.json`.
+- The album folder is written directly, but nothing commits or deploys it: the
+  owner still has to commit `public/music/<album>/` in DabMusic.
 
 ## Working notes
 

@@ -9,11 +9,13 @@ import { serializeLyrics, toLrcText } from "@/lib/dmll/serialize";
 import { EMPTY_HISTORY, historyReducer, type SyncMode, type TokenRef } from "@/lib/dmll/sync";
 import type { Lyrics } from "@/lib/dmll/types";
 
+import { AlbumBar } from "./album-bar";
 import { LyricList } from "./lyric-list";
 import { LyricsInput } from "./lyrics-input";
 import { SummaryBar } from "./summary-bar";
 import { TopBar } from "./top-bar";
 import { Transport } from "./transport";
+import { useAlbum } from "./use-album";
 import { useDraft } from "./use-draft";
 import { usePlayback } from "./use-playback";
 import { useSyncKeys } from "./use-sync-keys";
@@ -37,6 +39,7 @@ export function LyricsEditor() {
   const playback = usePlayback();
   const { currentTime, seek, togglePlay, openFile, rate, setRate } = playback;
   const waveform = useWaveform(playback.file);
+  const album = useAlbum();
 
   const [mode, setMode] = useState<SyncMode>("word");
   const [panelOpen, setPanelOpen] = useState(false);
@@ -97,6 +100,29 @@ export function LyricsEditor() {
     },
     [openFile],
   );
+
+  /** Opens one of the album's tracks, with the lyric file it already has. */
+  const openAlbumTrack = useCallback(
+    async (file: string) => {
+      if (lyrics.length > 0 && !window.confirm(CONFIRM_REPLACE)) return;
+      const opened = await album.open(file);
+      if (!opened) return;
+
+      openAudio(opened.audio);
+      setLyricsName(opened.lyricName ? baseName(opened.lyricName) : undefined);
+      dispatch({ type: "replace", lyrics: opened.lyrics === undefined ? [] : parseLyrics(opened.lyrics) });
+      setPanelOpen(false);
+    },
+    [album, lyrics.length, openAudio],
+  );
+
+  /** Writes the lyric file into the album folder and points its manifest at it. */
+  const saveToAlbum = useCallback(async () => {
+    const name = await album.save(serializeLyrics(lyrics));
+    if (name) setLyricsName(baseName(name));
+  }, [album, lyrics]);
+
+  const canSaveToAlbum = album.track !== undefined && audioName === album.track && lyrics.length > 0;
 
   const importFile = useCallback(
     async (file: File) => {
@@ -172,7 +198,10 @@ export function LyricsEditor() {
         onOpenAudio={openAudio}
         onImport={importFile}
         onExport={exportFile}
+        onOpenAlbum={album.connect}
       />
+
+      <AlbumBar album={album} canSave={canSaveToAlbum} onOpen={openAlbumTrack} onSave={saveToAlbum} />
 
       <main className="flex-1" style={{ paddingBottom: transportHeight }}>
         {showPanel && (
