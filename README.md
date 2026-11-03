@@ -5,6 +5,7 @@ Create and edit DMLL lyric files for DabMusic. Paste the lyrics, load the track,
 ## Workflow
 
 1. **Audio.** Open the track's audio file, the same file that goes into `public/music/<album>/`.
+   `Album` opens one of those album folders instead: pick the track and its audio and its existing lyric file load together.
 2. **Lyrics.** Paste the lyrics, one line per row. Blank rows become section breaks.
    An existing `.lrc` or `.dmll` can be pasted as it is: its timestamps are kept. `Import` opens such a file instead.
    Pasting again never throws work away: a line whose text did not change keeps the timing it already has,
@@ -22,6 +23,7 @@ Create and edit DMLL lyric files for DabMusic. Paste the lyrics, load the track,
    Double-click a word, or select it and press `F2`, to edit its text in place. The word keeps its timing; typing several words splits its span between them. `Enter` saves, `Esc` cancels.
 5. **Shape.** `L` / `R` moves a line to the other side. `Ad-lib` turns a line into an ad-lib under the line above it.
 6. **Export.** `Export .dmll` downloads the file. `Import` opens a `.dmll` or `.lrc` file to keep editing it.
+   With an album folder open, `Save to album` writes `<track>.dmll` into it and points `album.json` at it, so only committing the folder is left. A track that listed `lrc` has that key replaced, because the site refuses a track with both; the old file stays on disk, unlisted. This uses the File System Access API (Chrome and Edge on desktop); elsewhere `Export` and `Import` still work.
 
 The Word / Line switch in the bottom bar sets what `Space` does. In Line mode it only stamps line starts, and `Estimate` then spreads each line's words across the time up to the next line. In Word mode, words that carry a time are blue; in Line mode, lines that carry a timestamp are blue. Gray means still to do.
 
