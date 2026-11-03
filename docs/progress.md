@@ -15,6 +15,7 @@ pages, the shadcn components and the LRC-only parser are gone from `master`;
 | #2 | `975e6c6` | `slow-playback` | 0.5× / 0.75× playback |
 | #3 | `5c516ea` | `fix-last-word` | Ends the last word when no word is left |
 | #4 | `67f87e5` | `timed-highlight` | Timed words and lines are blue |
+| #5 | `3e30ccd` | `rename-site` | Renamed the site, added `metadataBase` |
 
 ## Why a rewrite
 
