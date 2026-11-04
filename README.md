@@ -30,13 +30,13 @@ The main editor has three tabs: **Edit** for the words, **Line** for each line's
 
 ## Word
 
-- One line at a time, centred, with a `Word k / N` counter. Timed words are blue; the word under the bar is underlined.
-- The rail shows the line's start on the left and its end on the right (the last word's end, or the next line's start; `--:--.--` when neither is known). One dot per word is always visible; the long pill is the handle and also shows the progress. It only moves forward.
-- Play the line, then drag the pill forward with the words. Each time it reaches a word slot, the current **media time** becomes that word's start and the previous word ends there. A fast move that crosses several slots interpolates between the two samples. Letting go ends the current word; reaching the right end completes the line and moves to the next one, with the audio still playing.
-- With the audio paused, the drag maps the pill linearly from the line start to its end, so the timing can also be set silently.
-- `Slow` toggles 0.5×/1×. The samples use media time, so 0.5× records the same song positions as 1×. `Back` returns to the previous line. The rate goes back to 1× when the tab changes.
+- One line at a time, centred, with a `Word k / N` counter. Timed words are blue; the word under the cursor is underlined.
+- The rail is the **whole line**: its left is the line start, its right is the line end (the last word's end, or the next line's start; `--:--.--` when neither is known). The words split that span in proportion to their text length, and one dot marks each word's start. The long pill is the cursor and only moves forward.
+- Drag from the far left to the far right. The cursor's position maps linearly to the line's time; when it passes a word's start boundary, the previous word ends and the next starts at that mapped time. The last word ends at the right edge. A jump over several boundaries interpolates. The times come from the position, not the audio clock; the Play and Slow controls are for listening.
+- Releasing early finalises the current word at the release position. Reaching the right edge completes the line and moves to the next one.
+- `Back` returns to the previous line. `Slow` is a 0.5× listening aid and does not change the recorded positions. The rate goes back to 1× when the tab changes.
 - Each release is one undo step. The line start is set from the first word when it had none; a line with an existing start keeps it.
-- Keyboard: `Space` plays or pauses, `→` on the rail steps to the next word, `Enter` commits the current word. `Ctrl/Cmd+Z` undoes outside the textarea.
+- Keyboard: `Space` plays or pauses, `→` on the rail steps to the next boundary, `Enter` commits the current word. `Ctrl/Cmd+Z` undoes outside the textarea.
 
 ## Legacy
 

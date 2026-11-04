@@ -7,21 +7,23 @@ import { cx } from "@/lib/cx";
 const PADDING = 8;
 const TRACK_HEIGHT = 80;
 const PILL_HEIGHT = 44;
-const MIN_PILL = 48;
+const MIN_PILL = 56;
 const MAX_PILL = 96;
 
 interface WordSliderProps {
   wordCount: number;
-  /** 0–1, controlled. */
+  /** Start fractions of the words, plus 1 for the line's end. */
+  boundaries: number[];
+  /** 0–1, the cursor's position across the whole line. */
   progress: number;
-  /** The word under the pill, for the dots. */
+  /** The word the cursor is in, for the accessible value. */
   activeWord: number;
   disabled?: boolean;
   onStart: () => void;
   onProgress: (progress: number) => void;
   onRelease: (progress: number) => void;
   onCancel: () => void;
-  /** Keyboard: start the next word. */
+  /** Keyboard: move to the next boundary. */
   onStep: () => void;
   /** Keyboard: finalize the current word. */
   onCommit: () => void;
@@ -29,17 +31,18 @@ interface WordSliderProps {
 
 interface Geometry {
   trackLeft: number;
-  travel: number;
-  grab: number;
+  inner: number;
 }
 
 /**
- * The Word progress rail: a tall track, one dot per word, and a long pill the
- * user drags forward. The pill only moves right; the pointer is captured for
- * the whole gesture. Its keyboard fallback is ArrowRight / Enter.
+ * The Word rail: the whole track is the line, one dot marks each word's start,
+ * and a long pill is the cursor. The user drags from the left edge to the right
+ * edge; the pill only moves forward and the pointer is captured for the gesture.
+ * Its keyboard fallback is ArrowRight / Enter.
  */
 export function WordSlider({
   wordCount,
+  boundaries,
   progress,
   activeWord,
   disabled = false,
@@ -51,9 +54,8 @@ export function WordSlider({
   onCommit,
 }: WordSliderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
-  const pillRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
-  const geometry = useRef<Geometry>({ trackLeft: 0, travel: 1, grab: 0 });
+  const geometry = useRef<Geometry>({ trackLeft: 0, inner: 1 });
   const maxProgress = useRef(progress);
   const [width, setWidth] = useState(0);
 
@@ -70,34 +72,29 @@ export function WordSlider({
     return () => observer.disconnect();
   }, []);
 
-  const dots = wordCount > 0 ? wordCount : 12;
   const inner = Math.max(0, width - PADDING * 2);
-  const slot = inner / Math.max(1, dots);
-  const pillWidth = wordCount > 0 ? Math.min(MAX_PILL, Math.max(MIN_PILL, slot)) : MIN_PILL;
+  const starts = wordCount > 0 ? boundaries.slice(0, wordCount) : [];
+  const marks = starts.length > 0 ? starts : Array.from({ length: 12 }, (_, index) => (index + 0.5) / 12);
+  // A long handle whose centre is the cursor, kept inside the track at the edges.
+  const pillWidth = Math.min(MAX_PILL, Math.max(MIN_PILL, inner * 0.12));
   const travel = Math.max(1, inner - pillWidth);
-  const pillLeft = PADDING + Math.min(1, Math.max(0, progress)) * travel;
+  const pillLeft = PADDING + Math.min(travel, Math.max(0, progress * inner - pillWidth / 2));
 
   function begin(event: PointerEvent<HTMLDivElement>) {
     if (disabled) return;
     const track = trackRef.current?.getBoundingClientRect();
-    const pill = pillRef.current?.getBoundingClientRect();
-    if (!track || !pill) return;
+    if (!track) return;
 
     dragging.current = true;
     maxProgress.current = progress;
-    geometry.current = {
-      trackLeft: track.left,
-      travel,
-      grab: event.clientX - pill.left,
-    };
+    geometry.current = { trackLeft: track.left, inner };
     event.currentTarget.setPointerCapture(event.pointerId);
     onStart();
   }
 
   function progressAt(clientX: number): number {
     const geom = geometry.current;
-    const left = clientX - geom.trackLeft - PADDING - geom.grab;
-    return Math.min(1, Math.max(0, left / geom.travel));
+    return Math.min(1, Math.max(0, (clientX - geom.trackLeft - PADDING) / Math.max(1, geom.inner)));
   }
 
   function move(clientX: number) {
@@ -142,24 +139,23 @@ export function WordSlider({
       className={cx("relative w-full select-none rounded-2xl border border-border bg-surface-secondary", disabled && "opacity-60")}
       style={{ height: TRACK_HEIGHT }}
     >
-      {/* Word slots, always visible under the pill. */}
-      {Array.from({ length: dots }, (_, index) => (
+      {/* One mark per word start; the line's end is the right edge. */}
+      {marks.map((mark, index) => (
         <span
           key={index}
           aria-hidden
           className={cx(
             "absolute bottom-3 size-1.5 -translate-x-1/2 rounded-full",
-            index <= activeWord && !disabled ? "bg-timed" : "bg-border-strong",
+            mark <= progress + 1e-9 && !disabled ? "bg-timed" : "bg-border-strong",
           )}
-          style={{ left: PADDING + ((index + 0.5) * inner) / dots }}
+          style={{ left: PADDING + mark * inner }}
         />
       ))}
 
       <div
-        ref={pillRef}
         role="slider"
         tabIndex={disabled ? -1 : 0}
-        aria-label="Word sync progress"
+        aria-label="Word sync position"
         aria-valuemin={0}
         aria-valuemax={Math.max(1, wordCount)}
         aria-valuenow={wordCount > 0 ? activeWord + 1 : 0}

@@ -57,7 +57,7 @@ on what a file means.
       (the same file and OFL licence as DabMusic); semantic colour tokens
       mirrored from its `globals.css` (light and dark), including the approved
       functional colours and the focus ring.
-- [x] Tests: vitest 5.0.5, which DabMusic does not have. 108 cases in 12 files.
+- [x] Tests: vitest 5.0.5, which DabMusic does not have. 109 cases in 12 files.
 
 ### Format core
 
@@ -373,6 +373,28 @@ disabled.
   `+` became `03.60` and the audio `03.60`. `pnpm typecheck`, `pnpm lint`,
   `pnpm test` and `pnpm build` pass.
 
+### Position-based Word rail (PR #16)
+
+- The Word rail is the whole line. `wordBoundaries()` in `word-sync.ts` gives
+  every word a segment proportional to its trimmed text length; the rail's left
+  is the line start and its right is the line end (last word end or next line
+  start; the track duration is a fallback). One dot marks each word's start;
+  the last word's end is the right edge.
+- The cursor's position maps linearly to the line's time. Crossing a word's
+  start boundary ends the previous word and starts the next at that mapped
+  time; a jump interpolates; the last word ends at the right edge. The audio
+  clock is no longer used for the timing; Play and Slow are listening aids.
+- The pill is a long handle whose centre follows the cursor (56–96 px, no longer
+  one word wide). The drag still only moves right, and a release is one undo
+  step. Reaching the right edge completes the line and advances.
+- `wordIndexAt()` now takes the boundary list; `syncWordTimings()` crosses the
+  same fractional boundaries. The tests cover the proportional split, jumps,
+  the monotonic clamp and early releases: 109 cases in 12 files.
+- Verified at 1280: imported `[00:01.00] alpha beta` and `[00:04.00] gamma
+  delta`; dragging the rail from left to right gave alpha `1.00–2.67` and beta
+  `2.67–4.00` (the 5/9 text-length boundary), then advanced to the next line.
+  The rail showed `01.00`/`04.00`, two start dots and a ~90 px pill.
+
 ## Resolved decisions
 
 - **Word timing belongs to an exact line.** Kept only while the line's text is
@@ -390,10 +412,11 @@ disabled.
   makes the whole line fall back to `[mm:ss.xx] text`, per the format rules, so
   the file never carries a half-timed sweep. The status bar says so.
 - **Blue means timed; gray means still to do.** Two modes, one colour language.
-- **Word time comes from the audio clock at slot crossings.** While playing, the
-  media time when the pill enters a word slot is that word's start; the drag
-  pace therefore sets the timing. A paused drag maps the position linearly from
-  the line start to its end. Leftward movement is clamped.
+- **Word time comes from the rail position, not the audio clock.** The rail is
+  the whole line; the words split it in proportion to their text length. The
+  cursor's position maps to the line's time; crossing a word's start boundary
+  records the previous end and the next start at that time, and the last word
+  ends at the right edge. Only rightward movement is allowed.
 - **End of lyrics is the last line's last word end.** DMLL has no separate
   global end, so the `End of lyrics` row edits that value; a line with no word
   timing has no end to edit.
@@ -407,7 +430,7 @@ disabled.
 
 ## Verified
 
-- 108 vitest cases: timing, tokenizing, parsing (including the spec's quick
+- 109 vitest cases: timing, tokenizing, parsing (including the spec's quick
   reference, multi-timestamp lines, the duet form, BOM), serializing,
   round-trips, merging, the sync reducer, rate stepping.
 - All 14 real `.lrc` files in DabMusic's `public/music` (564 timestamped lines,
