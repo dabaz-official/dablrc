@@ -24,6 +24,7 @@ old pages, the shadcn components and the LRC-only parser are gone from `master`;
 | #11 | `716e86e` | `focus-editor` | The single-line Focus editor, with Legacy kept |
 | #12 | `c80d154` | `tabs-editor` | Rebuilt as Edit, Line and Word tabs; Legacy kept at `?view=legacy` |
 | #13 | `48af83b` | `edit-margins` | Edit tab aligned with the header margins |
+| #14 | `6062c81` | `line-step-buttons` | Line step chevrons, row side/role toggles, header-aligned margins |
 
 ## Why a rewrite
 
