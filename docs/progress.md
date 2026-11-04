@@ -331,6 +331,33 @@ it, and the Legacy header's `Editor` button comes back without a reload.
   No new tokens: the highlight and Word pill use the approved `timed` /
   `timed-subtle` blue, not Musixmatch purple.
 
+### Line step controls and row toggles (PR #14)
+
+- Above the Line player are two chevrons. Down stamps the next line at the
+  playhead and activates it; up clears the highlighted line's timing and
+  activates the previous one. "Current" is `currentLineIndex`, the row the
+  playhead highlights. Down uses `setLineStart` (an existing line and its words
+  shift together); up uses `clearTiming`. Both work without audio; down then
+  uses the 0 playhead.
+- At the right of each Line row: an `L`/`R` side toggle (`toggleVoice`) and a
+  `Lyric`/`Ad-lib` role toggle (`toggleAdlib`). New lines are left/lyric. An
+  ad-lib inherits the side of the lyric above, so its side button is read-only.
+  The first lyric line has no parent, so its role button is disabled. The
+  labels show the current state, not the next action.
+- The Line list now uses the header's `max-w-6xl px-3 md:px-4`, so its rows
+  start and end at the Edit card and header content edges (80–1200 at 1280,
+  12–378 at 390). The chevrons are capped at `max-w-lg` (250 px each at 1280)
+  and sit centred above the player.
+- No new reducer actions or tokens: the toggles use `toggleVoice`/
+  `toggleAdlib`, and the steps use the existing line/timing actions.
+
+Verified: `pnpm typecheck`, `pnpm lint`, `pnpm build`; at 1280 the row and
+header edges are 80–1200, at 390 12–378; the chevrons measured 250×56; the step
+sequence set alpha/beta/gamma at 1.00/2.00/3.00, and up cleared gamma and
+returned to beta at 2.00; the row toggles changed beta L→R, lyric→ad-lib (side
+inherited and read-only) and back to lyric; the first line's role button stayed
+disabled.
+
 ## Resolved decisions
 
 - **Word timing belongs to an exact line.** Kept only while the line's text is

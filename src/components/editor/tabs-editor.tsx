@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 
 import { EditTab } from "./edit-tab";
 import { EditorHeader, type EditorTab } from "./editor-header";
+import { LineStepButtons } from "./line-step-buttons";
 import { LineTab } from "./line-tab";
 import { Player } from "./player";
 import type { EditorController } from "./use-editor";
@@ -59,6 +60,7 @@ export function TabsEditor({ editor }: TabsEditorProps) {
             <div className="min-h-0 flex-1">
               {tab === "edit" ? <EditTab editor={editor} /> : <LineTab editor={editor} onEdit={() => changeTab("edit")} />}
             </div>
+            {tab === "line" && <LineStepButtons editor={editor} />}
             <Player playback={editor.playback} />
           </>
         )}

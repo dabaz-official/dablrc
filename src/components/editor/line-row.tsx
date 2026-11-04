@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cx } from "@/lib/cx";
 import { plainText, type LineEntry } from "@/lib/dmll/model";
 import { formatTime } from "@/lib/dmll/time";
+import type { Voice } from "@/lib/dmll/types";
 
 import { TimeChip } from "./time-chip";
 
@@ -15,25 +16,35 @@ export interface LineRowProps {
   entry: LineEntry;
   /** Whether the playhead is inside this line. */
   current: boolean;
+  /** The side this line (or its parent lyric) sits on. */
+  voice: Voice;
+  /** Whether the Lyric/Ad-lib button can act on this line. */
+  canAdlib: boolean;
   onClear: (index: number) => void;
   onSetStart: (index: number) => void;
   onSelect: (index: number, start: number | undefined) => void;
   onNudge: (index: number, delta: number) => void;
   onPlay: (index: number, start: number | undefined) => void;
+  onToggleVoice: (index: number) => void;
+  onToggleAdlib: (index: number) => void;
 }
 
 const STEP = 0.1;
 
-/** One lyric line in the Line tab: time chip, play button and the words. */
+/** One lyric line in the Line tab: time chip, play button, words and side/role toggles. */
 export const LineRow = memo(function LineRow({
   index,
   entry,
   current,
+  voice,
+  canAdlib,
   onClear,
   onSetStart,
   onSelect,
   onNudge,
   onPlay,
+  onToggleVoice,
+  onToggleAdlib,
 }: LineRowProps) {
   const start = entry.start;
   const isAdlib = entry.kind === "adlib";
@@ -72,21 +83,58 @@ export const LineRow = memo(function LineRow({
         <Play className="size-4" />
       </Button>
 
-      <button
-        type="button"
-        onClick={() => onSelect(index, start)}
-        className={cx(
-          "flex min-h-11 min-w-0 flex-1 basis-full items-center gap-2 text-left sm:basis-auto sm:min-h-0",
-          isAdlib ? "text-sm text-text-secondary" : "text-base text-text-primary",
-        )}
-      >
-        {isAdlib && (
-          <span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-[10px] font-medium text-text-tertiary">
-            Ad-lib
-          </span>
-        )}
-        <span className="min-w-0">{plainText(entry.tokens)}</span>
-      </button>
+      <div className="flex min-h-11 min-w-0 flex-1 basis-full items-center gap-1.5 sm:min-h-0 sm:basis-auto">
+        <button
+          type="button"
+          onClick={() => onSelect(index, start)}
+          className={cx(
+            "flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left sm:min-h-0",
+            isAdlib ? "text-sm text-text-secondary" : "text-base text-text-primary",
+          )}
+        >
+          {isAdlib && (
+            <span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-[10px] font-medium text-text-tertiary">
+              Ad-lib
+            </span>
+          )}
+          <span className="min-w-0">{plainText(entry.tokens)}</span>
+        </button>
+
+        <div className="flex shrink-0 items-center gap-1">
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            className="size-11 font-mono text-xs sm:size-7"
+            title={
+              isAdlib
+                ? "This side comes from the lyric line above"
+                : `Side: ${voice}. Click to switch.`
+            }
+            aria-label={isAdlib ? "Side inherited from the line above" : `Side ${voice}, switch sides`}
+            disabled={isAdlib}
+            onClick={() => onToggleVoice(index)}
+          >
+            {voice === "right" ? "R" : "L"}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-11 min-w-[64px] px-2 text-xs sm:h-7"
+            title={
+              !canAdlib
+                ? "An ad-lib needs a lyric line above it"
+                : isAdlib
+                  ? "Turn into a lyric line"
+                  : "Turn into an ad-lib under the line above"
+            }
+            aria-label={isAdlib ? "Turn this ad-lib into a lyric line" : "Turn this line into an ad-lib"}
+            disabled={!canAdlib}
+            onClick={() => onToggleAdlib(index)}
+          >
+            {isAdlib ? "Ad-lib" : "Lyric"}
+          </Button>
+        </div>
+      </div>
     </li>
   );
 });
