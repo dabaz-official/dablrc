@@ -5,7 +5,7 @@ import { useCallback, useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
 import { isLine, currentLineIndex, lastLineIndex, parentOf } from "@/lib/dmll/model";
-import { formatTime } from "@/lib/dmll/time";
+import { formatTime, roundTime } from "@/lib/dmll/time";
 
 import { LineRow } from "./line-row";
 import { TimeChip } from "./time-chip";
@@ -39,8 +39,15 @@ export function LineTab({ editor, onEdit }: LineTabProps) {
   );
   const clear = useCallback((index: number) => dispatch({ type: "clearTiming", entry: index }), [dispatch]);
   const nudge = useCallback(
-    (index: number, delta: number) => dispatch({ type: "shiftLine", entry: index, delta }),
-    [dispatch],
+    (index: number, delta: number) => {
+      const entry = lyrics[index];
+      if (!isLine(entry) || entry.start === undefined) return;
+      const start = roundTime(Math.max(0, entry.start + delta));
+      dispatch({ type: "shiftLine", entry: index, delta });
+      // The fine tune is a listening tool: follow the line with the playhead.
+      seek(start);
+    },
+    [dispatch, lyrics, seek],
   );
   const select = useCallback((index: number, start: number | undefined) => activate(index, start), [activate]);
   const toggleVoice = useCallback((index: number) => dispatch({ type: "toggleVoice", entry: index }), [dispatch]);
@@ -64,10 +71,12 @@ export function LineTab({ editor, onEdit }: LineTabProps) {
   }, [dispatch, last, lastTokenIndex]);
   const nudgeEnd = useCallback(
     (delta: number) => {
-      if (lastTokenIndex < 0) return;
+      if (lastTokenIndex < 0 || !lastToken || lastToken.start === undefined || lastToken.end === undefined) return;
+      const end = roundTime(Math.max(lastToken.start, lastToken.end + delta));
       dispatch({ type: "nudgeTokenEnd", ref: { entry: last, token: lastTokenIndex }, delta });
+      seek(end);
     },
-    [dispatch, last, lastTokenIndex],
+    [dispatch, last, lastToken, lastTokenIndex, seek],
   );
   const playEnd = useCallback(() => {
     if (end === undefined) return;
