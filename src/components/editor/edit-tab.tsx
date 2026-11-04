@@ -61,7 +61,7 @@ export function EditTab({ editor }: EditTabProps) {
   }, [apply, draft, focused]);
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-3xl flex-col px-4 py-4">
+    <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-3 py-4 md:px-4">
       <label htmlFor="lyrics-edit" className="sr-only">
         Lyrics
       </label>
