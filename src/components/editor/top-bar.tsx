@@ -1,6 +1,6 @@
 "use client";
 
-import { AlignCenter, Download, FileAudio, FileUp, FolderOpen, List } from "lucide-react";
+import { AlignCenter, Download, FileAudio, FileUp, FolderOpen } from "lucide-react";
 import Image from "next/image";
 import { useRef, type ChangeEvent } from "react";
 
@@ -10,12 +10,9 @@ import { Button } from "@/components/ui/button";
 const AUDIO_TYPES = "audio/*,.mp3,.m4a,.aac,.wav,.flac,.ogg,.opus";
 const LYRIC_TYPES = ".dmll,.lrc,.txt";
 
-export type EditorView = "focus" | "legacy";
-
 interface TopBarProps {
   audioName?: string;
   canExport: boolean;
-  view: EditorView;
   onSwitchView: () => void;
   onOpenAudio: (file: File) => void;
   onImport: (file: File) => void;
@@ -26,7 +23,6 @@ interface TopBarProps {
 export function TopBar({
   audioName,
   canExport,
-  view,
   onSwitchView,
   onOpenAudio,
   onImport,
@@ -90,12 +86,12 @@ export function TopBar({
         <Button
           size="sm"
           variant="ghost"
-          title={view === "focus" ? "Open the legacy list editor" : "Open the single-line focus editor"}
-          aria-label={view === "focus" ? "Open the legacy editor" : "Open the focus editor"}
+          title="Open the tab editor"
+          aria-label="Open the tab editor"
           onClick={onSwitchView}
         >
-          {view === "focus" ? <List className="size-4" /> : <AlignCenter className="size-4" />}
-          <span className="hidden sm:inline">{view === "focus" ? "Legacy" : "Focus"}</span>
+          <AlignCenter className="size-4" />
+          <span className="hidden sm:inline">Editor</span>
         </Button>
         <ThemeToggle />
 

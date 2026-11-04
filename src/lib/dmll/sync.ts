@@ -41,6 +41,12 @@ export type Action =
   | { type: "restamp"; edge: Edge; time: number }
   | { type: "nudge"; edge: Edge; delta: number }
   | { type: "setTokenText"; ref: TokenRef; text: string }
+  | { type: "setLineStart"; entry: number; time: number }
+  | { type: "shiftLine"; entry: number; delta: number }
+  | { type: "setLineWords"; entry: number; start?: number; tokens: Token[] }
+  | { type: "setTokenEnd"; ref: TokenRef; time: number }
+  | { type: "clearTokenEnd"; ref: TokenRef }
+  | { type: "nudgeTokenEnd"; ref: TokenRef; delta: number }
   | { type: "toggleVoice"; entry: number }
   | { type: "toggleAdlib"; entry: number }
   | { type: "clearTiming"; entry: number }
@@ -60,6 +66,12 @@ const RECORDED = new Set<Action["type"]>([
   "restamp",
   "nudge",
   "setTokenText",
+  "setLineStart",
+  "shiftLine",
+  "setLineWords",
+  "setTokenEnd",
+  "clearTokenEnd",
+  "nudgeTokenEnd",
   "toggleVoice",
   "toggleAdlib",
   "clearTiming",
@@ -108,6 +120,18 @@ function step(state: EditorState, action: Action): EditorState {
       return nudge(state, action.edge, action.delta);
     case "setTokenText":
       return editTokenText(state, action.ref, action.text);
+    case "setLineStart":
+      return setLineStart(state, action.entry, action.time);
+    case "shiftLine":
+      return shiftLine(state, action.entry, action.delta);
+    case "setLineWords":
+      return setLineWords(state, action.entry, action.start, action.tokens);
+    case "setTokenEnd":
+      return setTokenEnd(state, action.ref, action.time);
+    case "clearTokenEnd":
+      return setTokenEnd(state, action.ref, undefined);
+    case "nudgeTokenEnd":
+      return nudgeTokenEnd(state, action.ref, action.delta);
     case "toggleVoice":
       return toggleVoice(state, action.entry);
     case "toggleAdlib":
@@ -268,6 +292,81 @@ function editTokenText(state: EditorState, ref: TokenRef, text: string): EditorS
       : state.selected;
 
   return { ...state, lyrics, cursor, selected };
+}
+
+/**
+ * Sets a line's start. A line that already had one moves its words with it, so
+ * the relative alignment survives a correction.
+ */
+function setLineStart(state: EditorState, index: number, time: number): EditorState {
+  const line = lineAt(state, index);
+  if (!line) return state;
+
+  const at = roundTime(time);
+  if (line.start === undefined) {
+    return { ...state, lyrics: setLine(state.lyrics, index, { ...line, start: at }) };
+  }
+  return shiftLine(state, index, at - line.start);
+}
+
+/** Moves a line's start and every word time by `delta` seconds. */
+function shiftLine(state: EditorState, index: number, delta: number): EditorState {
+  const line = lineAt(state, index);
+  if (!line || line.start === undefined) return state;
+
+  const start = roundTime(Math.max(0, line.start + delta));
+  // `roundTime` clamps to zero, so a signed delta needs its own rounding.
+  const shift = Math.round((start - line.start) * 100) / 100;
+  if (shift === 0) return state;
+
+  const tokens = line.tokens.map((token) => shiftToken(token, shift));
+  return { ...state, lyrics: setLine(state.lyrics, index, { ...line, start, tokens }) };
+}
+
+function shiftToken(token: Token, delta: number): Token {
+  if (token.start === undefined) return token;
+  const start = roundTime(Math.max(0, token.start + delta));
+  const end = token.end === undefined ? undefined : roundTime(Math.max(start, token.end + delta));
+  return { ...token, start, end };
+}
+
+/** Replaces a line's word timing after the Word tab's gesture. */
+function setLineWords(
+  state: EditorState,
+  index: number,
+  start: number | undefined,
+  tokens: Token[],
+): EditorState {
+  const line = lineAt(state, index);
+  if (!line) return state;
+  const nextStart = start === undefined ? line.start : roundTime(start);
+  return { ...state, lyrics: setLine(state.lyrics, index, { ...line, start: nextStart, tokens }) };
+}
+
+/** Sets a word's end, or removes it when `time` is undefined. */
+function setTokenEnd(state: EditorState, ref: TokenRef, time: number | undefined): EditorState {
+  const line = lineAt(state, ref.entry);
+  const token = line?.tokens[ref.token];
+  if (!line || !token || token.start === undefined) return state;
+
+  if (time === undefined) {
+    if (token.end === undefined) return state;
+    return editToken(state, ref, (item) => ({ ...item, end: undefined }));
+  }
+
+  const end = roundTime(Math.max(token.start, time));
+  if (end === token.end) return state;
+  return editToken(state, ref, (item) => ({ ...item, end }));
+}
+
+/** Moves a word's end by `delta` seconds; a word with no end keeps none. */
+function nudgeTokenEnd(state: EditorState, ref: TokenRef, delta: number): EditorState {
+  const token = lineAt(state, ref.entry)?.tokens[ref.token];
+  if (!token || token.start === undefined || token.end === undefined) return state;
+
+  const end = roundTime(Math.max(token.start, token.end + delta));
+  if (end === token.end) return state;
+  return editToken(state, ref, (item) => ({ ...item, end }));
 }
 
 function toggleVoice(state: EditorState, index: number): EditorState {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { mergeLyrics, toPlainText } from "./merge";
 import { parseLyrics } from "./parse";
-import { toLrcText } from "./serialize";
+import { serializeLyrics, toLrcText } from "./serialize";
 import { lineAt } from "./test-helpers";
 
 describe("mergeLyrics", () => {
@@ -110,5 +110,49 @@ describe("mergeLyrics", () => {
 describe("toPlainText", () => {
   it("writes one line per row and blank rows as empty lines", () => {
     expect(toPlainText(parseLyrics("[00:01.00] A\n\n[00:02.00] B"))).toBe("A\n\nB");
+  });
+});
+
+describe("plain-text Edit round trip", () => {
+  it("keeps comments, tags, voices, ad-libs and repeated timestamps", () => {
+    const source = [
+      "[dmll:1]",
+      "",
+      "// a note",
+      "[ar:Artist]",
+      "[v:right]",
+      "[00:01.00]{00:01.00~00:01.50}Hello {00:01.50~00:02.00}world",
+      "[ad:00:02.50]{00:02.50~00:03.00}echo",
+      "[00:04.00][00:06.00]{00:04.00~00:04.50}again",
+    ].join("\n");
+    const before = parseLyrics(source);
+    const text = toPlainText(before)
+      .split("\n")
+      .map((line) => line.trim())
+      .join("\n");
+    const after = mergeLyrics(before, parseLyrics(text));
+
+    expect(serializeLyrics(after)).toBe(serializeLyrics(before));
+  });
+});
+
+describe("plain-text wording edit", () => {
+  it("keeps the line timestamp, voice and ad-lib role when only the words change", () => {
+    const before = parseLyrics(
+      "[v:right]\n[00:01.00]{00:01.00~00:01.50}Hello {00:01.50~00:02.00}world\n[ad:00:02.50]{00:02.50~00:03.00}echo",
+    );
+    const merged = mergeLyrics(before, parseLyrics("Hi world\necho"));
+
+    expect(lineAt(merged, 0)).toMatchObject({
+      start: 1,
+      voice: "right",
+      tokens: [{ text: "Hi " }, { text: "world" }],
+    });
+    expect(lineAt(merged, 0).tokens.every((token) => token.start === undefined)).toBe(true);
+    expect(lineAt(merged, 1)).toMatchObject({
+      kind: "adlib",
+      start: 2.5,
+      tokens: [{ text: "echo", start: 2.5, end: 3 }],
+    });
   });
 });

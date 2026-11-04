@@ -14,7 +14,7 @@ const ICONS: Record<ThemeName, LucideIcon> = { light: Sun, dark: Moon, system: M
 const subscribeNothing = () => () => {};
 
 /** Cycles light, dark and system. Shows the system icon until mounted, so server and client agree. */
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(subscribeNothing, () => true, () => false);
 
@@ -26,6 +26,7 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="icon-sm"
+      className={className}
       title={`Theme: ${current}`}
       aria-label={`Theme: ${current}. Switch to ${next}.`}
       onClick={() => setTheme(next)}
