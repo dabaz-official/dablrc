@@ -20,12 +20,12 @@ The main editor has three tabs: **Edit** for the words, **Line** for each line's
 ## Line
 
 - One row per lyric line, using the same width and side padding as the header. Comments and tags are hidden; blank rows become gaps; ad-libs carry a badge.
-- Each row has a time chip: `X` clears the line's timing, `mm:ss.xx` is the timestamp, and `-`/`+` move the whole line by 0.1 s (the line's start and every word move together).
+- Each row has a time chip: `X` clears the line's timing, `mm:ss.xx` is the timestamp, and `-`/`+` move the whole line by 0.1 s (the line's start and every word move together). The playhead follows the new time, so a nudge is also a listen-at-that-moment control.
 - Clicking an untimed timestamp sets the line start to the playhead. Clicking a timed one seeks there. The play button starts playback from that line.
 - At the right of the words: an `L`/`R` side toggle (left by default) and a `Lyric`/`Ad-lib` role toggle (lyric by default). An ad-lib takes the side of the lyric above, so its side button is read-only; the first lyric line has no parent and cannot become an ad-lib.
 - The row at the playhead is highlighted with the timed blue background and left border.
 - Above the player: the up chevron clears the current (highlighted) line's timestamp and moves to the previous line; the down chevron sets the next line's timestamp to the playhead and moves to it.
-- `End of lyrics` is the end of the last line's last word, the only end DMLL actually stores. Its chip sets, nudges and clears that end; its play button starts at the end.
+- `End of lyrics` is the end of the last line's last word, the only end DMLL actually stores. Its chip sets, nudges and clears that end; a nudge moves the playhead to the new end, and its play button starts at the end.
 - The player below has play/pause, a draggable seek bar, and the two three-second jumps.
 
 ## Word

@@ -359,6 +359,19 @@ returned to beta at 2.00; the row toggles changed beta L→R, lyric→ad-lib (si
 inherited and read-only) and back to lyric; the first line's role button stayed
 disabled.
 
+### Nudge follows the playhead (PR #15)
+
+- A Line row's `-`/`+` now computes the new line start (clamped and rounded),
+  dispatches `shiftLine`, then seeks to that start. The `End of lyrics` `-`/`+`
+  computes the new end, dispatches `nudgeTokenEnd`, then seeks to that end. The
+  playhead follows the adjusted time, so the row, its highlight and the audio
+  stay in step.
+- No reducer, format or token change; the work is in `line-tab.tsx`.
+- Verified: a line set to `03.21` with `-` became `03.11` and the audio
+  `03.11`; `+` returned both to `03.21`. An `End of lyrics` at `03.50` with
+  `+` became `03.60` and the audio `03.60`. `pnpm typecheck`, `pnpm lint`,
+  `pnpm test` and `pnpm build` pass.
+
 ## Resolved decisions
 
 - **Word timing belongs to an exact line.** Kept only while the line's text is
