@@ -53,7 +53,7 @@ on what a file means.
       (the same file and OFL licence as DabMusic); semantic colour tokens
       mirrored from its `globals.css` (light and dark), including the approved
       functional colours and the focus ring.
-- [x] Tests: vitest 5.0.5, which DabMusic does not have. 88 cases in 11 files.
+- [x] Tests: vitest 5.0.5, which DabMusic does not have. 108 cases in 12 files.
 
 ### Format core
 
@@ -80,7 +80,7 @@ Pure TypeScript in `src/lib/dmll/`, no React:
 ### Editor
 
 One page, `src/app/page.tsx` to `components/editor/lyrics-editor.tsx`
-(now `legacy-editor.tsx`; Focus is the default since PR #11), with:
+(now `legacy-editor.tsx`; the tab editor is the default since PR #12), with:
 
 - Top bar: audio, import, export, theme. Import accepts `.dmll`, `.lrc`, `.txt`;
   export writes `.dmll` named after the imported file or the audio.
@@ -287,6 +287,48 @@ marker and the audio are in one place.
 - No parser, serializer, merge or format change. Both views produce the same
   DMLL; the draft key is still `dablrc.draft`.
 
+### Three-tab rebuild (PR #12)
+
+PR #11's Focus view was replaced with a Musixmatch-style three-tab editor. The
+list editor remains as Legacy at `?view=legacy`; the new header does not link to
+it, and the Legacy header's `Editor` button comes back without a reload.
+
+- **Header** (`editor-header.tsx`): logo and track name; `Edit` / `Line` / `Word`
+  tablist (arrow keys); audio upload, `.dmll` upload and a download-only export;
+  the existing theme toggle. On phones the logo/actions are one row and the tabs
+  are a second row; every control is at least 44 px.
+- **Edit** (`edit-tab.tsx`): a full-height plain-text textarea. Comments and
+  `[ar:]` tags are ordinary lines. Applying trims every line, then
+  `parseLyrics` + `mergeLyrics`; a debounce, blur and tab change all apply.
+  `mergeLyrics` gained a positional pass for equal-length files: a wording edit
+  keeps its line timestamp, side and ad-lib role (word timing still goes).
+- **Line** (`line-tab.tsx`, `line-row.tsx`): the per-line time chip
+  (`X`, `mm:ss.xx`, `-`, `+` at 0.1 s), play-from-line, the words, a blue
+  playhead highlight, and an `End of lyrics` row. `-`/`+` shift the line and all
+  its words together. Clicking an untimed timestamp stamps it at the playhead.
+  End of lyrics is the last line's last word `end`, the only end DMLL stores.
+  The standard player has play/pause, a seek bar, and ±3 s.
+- **Word** (`word-tab.tsx`, `word-line.tsx`, `word-slider.tsx`): one centred
+  line and a forward-only rail with one dot per word and a long pill.
+  `word-sync.ts` turns the drag samples into timings: each word slot entered
+  takes the current **media time** as its start, the previous word ends there,
+  and a jump over slots interpolates. Playing uses the audio clock; paused uses
+  a linear map from the line start to its end. The line start comes from the
+  first word if it had none. A release finalizes the current word; reaching the
+  right end completes the line and activates the next one. The rail never moves
+  left. `Back` / `Play` / `Slow` (0.5×/1×) are large lucide controls; the rate
+  returns to 1× on a tab change. Keyboard: `→` steps a word, `Enter` commits.
+- **Player** (`player.tsx`): Edit and Line share it; the Word tab has its own
+  three controls. `use-player-keys.ts` gives Space and Cmd/Ctrl+Z outside the
+  textarea.
+- **Shell**: `?view=legacy` chooses the Legacy header, album bar and list;
+  otherwise `TabsEditor`. Both share one `useEditor` session and one `<audio>`.
+  `useEditor` no longer decodes the waveform; only the Legacy view calls
+  `useWaveform`.
+- The old `focus-editor.tsx`, `focus-line.tsx` and `use-focus-keys.ts` are gone.
+  No new tokens: the highlight and Word pill use the approved `timed` /
+  `timed-subtle` blue, not Musixmatch purple.
+
 ## Resolved decisions
 
 - **Word timing belongs to an exact line.** Kept only while the line's text is
@@ -304,10 +346,24 @@ marker and the audio are in one place.
   makes the whole line fall back to `[mm:ss.xx] text`, per the format rules, so
   the file never carries a half-timed sweep. The status bar says so.
 - **Blue means timed; gray means still to do.** Two modes, one colour language.
+- **Word time comes from the audio clock at slot crossings.** While playing, the
+  media time when the pill enters a word slot is that word's start; the drag
+  pace therefore sets the timing. A paused drag maps the position linearly from
+  the line start to its end. Leftward movement is clamped.
+- **End of lyrics is the last line's last word end.** DMLL has no separate
+  global end, so the `End of lyrics` row edits that value; a line with no word
+  timing has no end to edit.
+- **Edit is plain text.** Comments and tags are ordinary lines; applying pairs
+  leftovers by position when both files have the same line count, so a wording
+  edit keeps its line time/side/ad-lib role. Word timing is still dropped when
+  the words change.
+- **Legacy is a hidden fallback.** The new header follows the requested layout
+  and does not link to it; `?view=legacy` still has the list editor, inline word
+  editing, side/ad-lib toggles and the album folder.
 
 ## Verified
 
-- 88 vitest cases: timing, tokenizing, parsing (including the spec's quick
+- 108 vitest cases: timing, tokenizing, parsing (including the spec's quick
   reference, multi-timestamp lines, the duet form, BOM), serializing,
   round-trips, merging, the sync reducer, rate stepping.
 - All 14 real `.lrc` files in DabMusic's `public/music` (564 timestamped lines,
@@ -360,7 +416,32 @@ marker and the audio are in one place.
     seeded to the active line's `03.60`. Both themes render, and the export read
     back as
     `[00:03.60] {00:03.60~00:04.00}alpha {00:04.00~00:04.80}beta {00:04.80~00:06.40}gamma`
-    plus the matching `delta` and `zeta` lines.
+    plus the matching `delta` and `zeta` lines;
+  - three-tab rebuild (in-app Chromium, production build): the header showed
+    the three tabs, both uploads and the export; the imported DMLL (comment,
+    `[ar:]`, voice, ad-lib, repeated timestamp) produced the expected Line rows
+    and an End at `06.60`. Edit changed `Hello world` to `Hi world` with edge
+    spaces: the textarea trimmed, the line kept `00:00.90` and voice right with
+    untimed words, the ad-lib kept `02.50` and its word times, and the export
+    wrote the comment, tag, `[v:right]`, `[ad:]` and the now-separate `again`
+    lines. Line: play from `01.00` highlighted the row; `-0.1` moved the line
+    and its words to `00:00.90 / 01.40 / 01.90`; `X` cleared and Cmd+Z
+    restored; End `+0.1` reached `06.60`, and clearing/undo worked; an untimed
+    ad-lib timestamp was set at the `02.60` playhead. The player seeked to
+    `10.00`, `-3`/`+3` gave `7.00`/`10.00`, and the highlight measured
+    `#1b2a42`/`#8ab4ff` in dark and `#e8efff`/`#1d4ed8` in light. Word: a paused
+    drag mapped `Hi world` to `0.90–2.50` and advanced; an unknown-start ad-lib
+    became `2.60–4.00` and advanced; an audio-clock drag started `again` at
+    `4.30` with the line start at `4.00` and ended at `4.50`; `0.5×` played at
+    half media speed; Back returned to the earlier line; a right-then-left drag
+    stayed at 60 %, ending at `4.30`; `→` twice plus Enter completed a line.
+    The rail's pointer/arrow/Enter paths were driven with synthetic events on
+    the pill because the in-app browser's CUA input did not deliver to it; the
+    same React handlers and timing math ran. At 390 px there was no horizontal
+    overflow, every header/footer/row button was 44 px, the header was 118 px,
+    rows 113 px and the player 65 px. `?view=legacy` opened the list and its
+    Editor button returned to the tabs; the old list kept the comments, voices
+    and draft.
 - Exported files were read back with a copy of DabMusic's `lrc.ts`: word times,
   gaps after an early `Shift+Space`, `[ad:]` folding into its parent line, voices
   and untimed lines all agree.

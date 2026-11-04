@@ -185,3 +185,86 @@ describe("ad-libs and voices", () => {
     expect(line(history, 0)).toMatchObject({ voice: "right" });
   });
 });
+
+describe("line timing", () => {
+  const timed = "[00:10.00]{00:10.00~00:10.50}one {00:10.50~00:11.00}two";
+
+  it("sets an untimed line's start without touching its words", () => {
+    const history = run(start("hello there"), { type: "setLineStart", entry: 0, time: 2 });
+
+    expect(line(history, 0)).toMatchObject({
+      start: 2,
+      tokens: [{ text: "hello " }, { text: "there" }],
+    });
+  });
+
+  it("shifts a timed line's start and every word together", () => {
+    const history = run(start(timed), { type: "shiftLine", entry: 0, delta: 0.1 });
+
+    expect(line(history, 0)).toMatchObject({
+      start: 10.1,
+      tokens: [
+        { text: "one ", start: 10.1, end: 10.6 },
+        { text: "two", start: 10.6, end: 11.1 },
+      ],
+    });
+  });
+
+  it("moves the words when an existing start is set to a new time", () => {
+    const history = run(start(timed), { type: "setLineStart", entry: 0, time: 9 });
+
+    expect(line(history, 0)).toMatchObject({
+      start: 9,
+      tokens: [
+        { text: "one ", start: 9, end: 9.5 },
+        { text: "two", start: 9.5, end: 10 },
+      ],
+    });
+  });
+
+  it("undoes a whole line shift in one step", () => {
+    const before = start(timed);
+    const after = run(before, { type: "shiftLine", entry: 0, delta: 0.1 }, { type: "undo" });
+
+    expect(after.present).toBe(before.present);
+  });
+
+  it("replaces a line's word timing from the Word tab", () => {
+    const tokens = [
+      { text: "one ", start: 10, end: 10.4 },
+      { text: "two", start: 10.4, end: 10.9 },
+    ];
+    const history = run(start(timed), { type: "setLineWords", entry: 0, start: 9.9, tokens });
+
+    expect(line(history, 0)).toMatchObject({ start: 9.9, tokens });
+    expect(run(history, { type: "undo" }).present.lyrics).toEqual(start(timed).present.lyrics);
+  });
+});
+
+describe("end of lyrics", () => {
+  const timed = "[00:10.00]{00:10.00~00:10.50}one {00:10.50~00:11.00}two";
+
+  it("sets, nudges and clears the last word's end", () => {
+    const set = run(start(timed), { type: "setTokenEnd", ref: { entry: 0, token: 1 }, time: 12 });
+    expect(line(set, 0).tokens[1]).toEqual({ text: "two", start: 10.5, end: 12 });
+
+    const nudged = run(set, { type: "nudgeTokenEnd", ref: { entry: 0, token: 1 }, delta: 0.1 });
+    expect(line(nudged, 0).tokens[1].end).toBe(12.1);
+
+    const cleared = run(nudged, { type: "clearTokenEnd", ref: { entry: 0, token: 1 } });
+    expect(line(cleared, 0).tokens[1]).toEqual({ text: "two", start: 10.5, end: undefined });
+  });
+
+  it("does nothing for a word that has no start", () => {
+    const history = start("hello");
+    const changed = run(history, { type: "setTokenEnd", ref: { entry: 0, token: 0 }, time: 2 });
+
+    expect(changed).toBe(history);
+  });
+
+  it("keeps the end at or after the start", () => {
+    const history = run(start(timed), { type: "setTokenEnd", ref: { entry: 0, token: 1 }, time: 1 });
+
+    expect(line(history, 0).tokens[1].end).toBe(10.5);
+  });
+});

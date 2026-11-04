@@ -11,6 +11,7 @@ import { SummaryBar } from "./summary-bar";
 import { Transport } from "./transport";
 import type { EditorController } from "./use-editor";
 import { useSyncKeys } from "./use-sync-keys";
+import { useWaveform } from "./use-waveform";
 
 interface LegacyEditorProps {
   editor: EditorController;
@@ -27,7 +28,6 @@ export function LegacyEditor({ editor }: LegacyEditorProps) {
     summary,
     voices,
     playback,
-    waveform,
     mode,
     setMode,
     hold,
@@ -53,6 +53,8 @@ export function LegacyEditor({ editor }: LegacyEditorProps) {
     canUndo,
   } = editor;
   const { currentTime, seek, togglePlay, rate, setRate, time } = playback;
+  // Only the list editor draws the waveform; the tab editor uses a plain player.
+  const waveform = useWaveform(playback.file);
 
   /** The measured height of the fixed transport, reserved under the lyric list. */
   const [transportHeight, setTransportHeight] = useState(176);

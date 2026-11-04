@@ -38,6 +38,39 @@ export function lineNumbers(lyrics: Lyrics): Array<number | undefined> {
   });
 }
 
+/** Index of the last line entry, or -1 when the file has none. */
+export function lastLineIndex(lyrics: Lyrics): number {
+  for (let index = lyrics.length - 1; index >= 0; index--) {
+    if (isLine(lyrics[index])) return index;
+  }
+  return -1;
+}
+
+/** The line whose start is the latest one at or before `time`; -1 before the first. */
+export function currentLineIndex(lyrics: Lyrics, time: number): number {
+  let current = -1;
+  lyrics.forEach((entry, index) => {
+    if (isLine(entry) && entry.start !== undefined && entry.start <= time) current = index;
+  });
+  return current;
+}
+
+/**
+ * Where a line ends: its last word's end when known, otherwise the next line's
+ * start. `undefined` means neither is known yet.
+ */
+export function lineEndAt(lyrics: Lyrics, index: number): number | undefined {
+  const entry = lyrics[index];
+  if (!isLine(entry)) return undefined;
+
+  const last = entry.tokens[entry.tokens.length - 1];
+  if (last?.end !== undefined) return last.end;
+
+  const next = nextLine(lyrics, index);
+  const following = next >= 0 ? lyrics[next] : undefined;
+  return isLine(following) ? following.start : undefined;
+}
+
 /** Index of the lyric line above `index`, which an ad-lib belongs to; -1 when there is none. */
 export function parentOf(lyrics: Lyrics, index: number): number {
   for (let above = index - 1; above >= 0; above--) {

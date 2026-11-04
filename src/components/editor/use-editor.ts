@@ -12,7 +12,6 @@ import type { Lyrics } from "@/lib/dmll/types";
 import { useAlbum } from "./use-album";
 import { useDraft } from "./use-draft";
 import { usePlayback } from "./use-playback";
-import { useWaveform } from "./use-waveform";
 
 const CONFIRM_REPLACE = "Replace the lyrics and their timing?";
 
@@ -36,7 +35,6 @@ export function useEditor() {
   const { lyrics, active, cursor, selected } = history.present;
   const playback = usePlayback();
   const { currentTime, seek, openFile } = playback;
-  const waveform = useWaveform(playback.file);
   const album = useAlbum();
 
   const [mode, setMode] = useState<SyncMode>("word");
@@ -186,7 +184,6 @@ export function useEditor() {
     summary,
     voices,
     playback,
-    waveform,
     album,
     mode,
     setMode,

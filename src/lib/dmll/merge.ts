@@ -69,7 +69,10 @@ function adoptLine(old: LineEntry, next: LineEntry): LineEntry {
  * Lines are matched by text first, with a longest common subsequence, so an
  * inserted line does not shift the rest. Lines whose text changed are then
  * matched by their timestamp: revising the wording of an LRC keeps its timing
- * as long as the timing itself did not change.
+ * as long as the timing itself did not change. When both versions hold the same
+ * number of lines, the leftovers are paired in order, so a plain-text wording
+ * edit keeps its line timestamp, voice and ad-lib role (the word timing still
+ * goes, because the words changed).
  */
 export function mergeLyrics(previous: Lyrics, next: Lyrics): Lyrics {
   const before = lineKeys(previous);
@@ -83,6 +86,7 @@ export function mergeLyrics(previous: Lyrics, next: Lyrics): Lyrics {
     adopted.set(after[j].index, before[i].index);
   }
   adoptByTimestamp(previous, next, adopted);
+  adoptByPosition(previous, next, adopted);
 
   let voice: Voice = "left";
   return next.map((entry, index) => {
@@ -118,6 +122,28 @@ function adoptByTimestamp(previous: Lyrics, next: Lyrics, adopted: Map<number, n
     if (match === undefined) return;
     adopted.set(index, match);
   });
+}
+
+function lineIndexes(lyrics: Lyrics): number[] {
+  const indexes: number[] = [];
+  lyrics.forEach((entry, index) => {
+    if (isLine(entry)) indexes.push(index);
+  });
+  return indexes;
+}
+
+/** Pairs leftover lines by order when both versions hold the same line count. */
+function adoptByPosition(previous: Lyrics, next: Lyrics, adopted: Map<number, number>): void {
+  const before = lineIndexes(previous);
+  const after = lineIndexes(next);
+  if (before.length !== after.length) return;
+
+  const takenOld = new Set(adopted.values());
+  const freeOld = before.filter((index) => !takenOld.has(index));
+  const freeNew = after.filter((index) => !adopted.has(index));
+  if (freeOld.length !== freeNew.length) return;
+
+  freeNew.forEach((index, position) => adopted.set(index, freeOld[position]));
 }
 
 function lineKeys(lyrics: Lyrics): LineKey[] {
