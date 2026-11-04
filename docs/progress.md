@@ -22,6 +22,7 @@ old pages, the shadcn components and the LRC-only parser are gone from `master`;
 | #9 | `aa8854f` | `format-fidelity` | Keep comments, tags and repeated timestamps |
 | #10 | `9d8a0ea` | `hold-touch` | Hold-to-sing, touch pad and narrow-screen rows |
 | #11 | `716e86e` | `focus-editor` | The single-line Focus editor, with Legacy kept |
+| #12 | `c80d154` | `tabs-editor` | Rebuilt as Edit, Line and Word tabs; Legacy kept at `?view=legacy` |
 
 ## Why a rewrite
 
