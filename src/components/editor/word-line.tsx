@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { cx } from "@/lib/cx";
 import { lineEndAt, lineNumbers, nextLine, isLine, type LineEntry } from "@/lib/dmll/model";
 import { formatTime } from "@/lib/dmll/time";
 import type { Token } from "@/lib/dmll/types";
-import { syncWordTimings, wordIndexAt, type WordSample } from "@/lib/dmll/word-sync";
+import { syncWordTimings, wordBoundaries, wordIndexAt, type WordSample } from "@/lib/dmll/word-sync";
 
 import type { EditorController } from "./use-editor";
 import { WordSlider } from "./word-slider";
@@ -17,16 +17,16 @@ interface WordLineProps {
   entry: LineEntry;
 }
 
-type ClockMode = "audio" | "mapped";
-
 /**
  * One line in the Word tab: the line itself, the progress rail, and the gesture
- * that turns a forward drag into word timings. The line's committed data is the
- * source of truth; the preview here is local until a release.
+ * that turns a forward drag into word timings. The rail is the whole line; the
+ * words split it by their text length, and the cursor's position is the time.
+ * The line's committed data is the source of truth; the preview here is local
+ * until a release.
  */
 export function WordLine({ editor, index, entry }: WordLineProps) {
   const { playback, dispatch, activate } = editor;
-  const { currentTime, duration, playing, hasAudio } = playback;
+  const { currentTime, duration, hasAudio } = playback;
 
   const [progress, setProgress] = useState(0);
   const [preview, setPreview] = useState<Token[]>(entry.tokens);
@@ -49,32 +49,28 @@ export function WordLine({ editor, index, entry }: WordLineProps) {
   const started = useRef(false);
   const base = useRef<Token[]>(entry.tokens);
   const samples = useRef<WordSample[]>([]);
-  const clockMode = useRef<ClockMode>("mapped");
   const gestureLeft = useRef<number | undefined>(entry.start);
   const gestureRight = useRef<number | undefined>(undefined);
   const maxProgress = useRef(0);
 
   const count = preview.length;
-  const word = wordIndexAt(progress, count);
+  const boundaries = useMemo(() => wordBoundaries(preview), [preview]);
+  const word = wordIndexAt(progress, boundaries);
   const start = previewStart ?? entry.start;
   const end = lineEndAt(editor.lyrics, index);
   const number = lineNumbers(editor.lyrics)[index];
   const isAdlib = entry.kind === "adlib";
 
-  /** The media time for a progress point. Playing uses the audio clock. */
+  /** The line's time at a position on the rail. */
   function clockAt(point: number): number {
-    if (clockMode.current === "audio") return currentTime();
     const left = gestureLeft.current ?? entry.start ?? 0;
-    const right =
-      gestureRight.current ??
-      (duration > left ? duration : left + 10);
+    const right = gestureRight.current ?? (duration > left ? duration : left + 10);
     return left + Math.min(1, Math.max(0, point)) * Math.max(0, right - left);
   }
 
   function startGesture() {
     if (!hasAudio || count === 0) return;
 
-    clockMode.current = playing ? "audio" : "mapped";
     const now = currentTime();
     gestureLeft.current = entry.start ?? now;
     gestureRight.current =
@@ -159,10 +155,9 @@ export function WordLine({ editor, index, entry }: WordLineProps) {
       startGesture();
       return;
     }
-    const current = wordIndexAt(progress, count);
-    const target = Math.min(count - 1, current + 1);
-    if (target === current) return;
-    addSample(count <= 1 ? 1 : target / (count - 1));
+    const next = boundaries.find((boundary) => boundary > maxProgress.current + 1e-9);
+    if (next === undefined) return;
+    addSample(next);
   }
 
   return (
@@ -214,6 +209,7 @@ export function WordLine({ editor, index, entry }: WordLineProps) {
 
         <WordSlider
           wordCount={count}
+          boundaries={boundaries}
           progress={progress}
           activeWord={word}
           disabled={!hasAudio || count === 0}
@@ -227,7 +223,7 @@ export function WordLine({ editor, index, entry }: WordLineProps) {
 
         <p className="mt-3 text-center text-xs text-text-tertiary">
           {hasAudio
-            ? "Play, then drag the bar forward with the words. It never moves back."
+            ? "The whole bar is this line. Drag from left to right through the word marks; it never moves back."
             : "Open the audio to sync words."}
         </p>
       </div>
