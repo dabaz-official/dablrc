@@ -25,6 +25,7 @@ old pages, the shadcn components and the LRC-only parser are gone from `master`;
 | #12 | `c80d154` | `tabs-editor` | Rebuilt as Edit, Line and Word tabs; Legacy kept at `?view=legacy` |
 | #13 | `48af83b` | `edit-margins` | Edit tab aligned with the header margins |
 | #14 | `6062c81` | `line-step-buttons` | Line step chevrons, row side/role toggles, header-aligned margins |
+| #15 | `00289b3` | `line-nudge-seek` | Line ± nudge moves the playhead to the adjusted time |
 
 ## Why a rewrite
 
