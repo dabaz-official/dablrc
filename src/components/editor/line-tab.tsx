@@ -4,7 +4,7 @@ import { Play } from "lucide-react";
 import { useCallback, useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
-import { isLine, currentLineIndex, lastLineIndex } from "@/lib/dmll/model";
+import { isLine, currentLineIndex, lastLineIndex, parentOf } from "@/lib/dmll/model";
 import { formatTime } from "@/lib/dmll/time";
 
 import { LineRow } from "./line-row";
@@ -21,7 +21,7 @@ interface LineTabProps {
 
 /** The line list: timestamps, playback, the End of lyrics row and the player. */
 export function LineTab({ editor, onEdit }: LineTabProps) {
-  const { lyrics, dispatch, activate, playback } = editor;
+  const { lyrics, voices, dispatch, activate, playback } = editor;
   const { time, currentTime, seek, playing, togglePlay } = playback;
 
   const current = currentLineIndex(lyrics, time);
@@ -43,6 +43,8 @@ export function LineTab({ editor, onEdit }: LineTabProps) {
     [dispatch],
   );
   const select = useCallback((index: number, start: number | undefined) => activate(index, start), [activate]);
+  const toggleVoice = useCallback((index: number) => dispatch({ type: "toggleVoice", entry: index }), [dispatch]);
+  const toggleAdlib = useCallback((index: number) => dispatch({ type: "toggleAdlib", entry: index }), [dispatch]);
   const playLine = useCallback(
     (index: number, start: number | undefined) => {
       if (start === undefined) return;
@@ -84,7 +86,7 @@ export function LineTab({ editor, onEdit }: LineTabProps) {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="mx-auto w-full max-w-5xl px-3 py-4 sm:px-4">
+      <div className="mx-auto w-full max-w-6xl px-3 py-4 md:px-4">
         <ol className="flex flex-col gap-0.5">
           {lyrics.map((entry, index) => {
             if (entry.kind === "blank") return <li key={index} aria-hidden className="h-3" />;
@@ -96,11 +98,15 @@ export function LineTab({ editor, onEdit }: LineTabProps) {
                 index={index}
                 entry={entry}
                 current={current === index}
+                voice={voices[index]}
+                canAdlib={entry.kind === "adlib" || parentOf(lyrics, index) >= 0}
                 onClear={clear}
                 onSetStart={setStart}
                 onSelect={select}
                 onNudge={nudge}
                 onPlay={playLine}
+                onToggleVoice={toggleVoice}
+                onToggleAdlib={toggleAdlib}
               />
             );
           })}
